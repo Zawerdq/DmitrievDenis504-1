@@ -1,0 +1,26 @@
+без прогрева кучи
+  std::vector     7.49 нс/элемент, page faults: 230
+  std::vector     5.70 нс/элемент, page faults: 194
+  std::vector     4.45 нс/элемент, page faults: 194
+  subvector x2    3.96 нс/элемент, page faults: 194
+  subvector x2    3.62 нс/элемент, page faults: 194
+  subvector x2    4.27 нс/элемент, page faults: 194
+  subvector x2    3.63 нс/элемент, page faults: 194
+  subvector x2    4.01 нс/элемент, page faults: 194
+  subvector x2    3.76 нс/элемент, page faults: 194
+  std::vector     3.50 нс/элемент, page faults: 194
+  std::vector     4.95 нс/элемент, page faults: 194
+  std::vector     4.45 нс/элемент, page faults: 194
+с прогревом кучи
+  std::vector    10.01 нс/элемент, page faults: 228
+  std::vector     1.64 нс/элемент, page faults: 0
+  std::vector     1.62 нс/элемент, page faults: 0
+  subvector x2    2.49 нс/элемент, page faults: 0
+  subvector x2    2.52 нс/элемент, page faults: 0
+  subvector x2    2.33 нс/элемент, page faults: 0
+  subvector x2    2.19 нс/элемент, page faults: 0
+  subvector x2    2.07 нс/элемент, page faults: 0
+  subvector x2    2.17 нс/элемент, page faults: 0
+  std::vector     1.82 нс/элемент, page faults: 0
+  std::vector     1.54 нс/элемент, page faults: 0
+  std::vector     1.48 нс/элемент, page faults: 0
