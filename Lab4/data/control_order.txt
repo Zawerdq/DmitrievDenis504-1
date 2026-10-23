@@ -1,26 +1,26 @@
 без прогрева кучи
-  std::vector     7.49 нс/элемент, page faults: 230
-  std::vector     5.70 нс/элемент, page faults: 194
-  std::vector     4.45 нс/элемент, page faults: 194
-  subvector x2    3.96 нс/элемент, page faults: 194
-  subvector x2    3.62 нс/элемент, page faults: 194
-  subvector x2    4.27 нс/элемент, page faults: 194
-  subvector x2    3.63 нс/элемент, page faults: 194
-  subvector x2    4.01 нс/элемент, page faults: 194
-  subvector x2    3.76 нс/элемент, page faults: 194
-  std::vector     3.50 нс/элемент, page faults: 194
-  std::vector     4.95 нс/элемент, page faults: 194
-  std::vector     4.45 нс/элемент, page faults: 194
+  std::vector     9.02 нс/элемент, page faults: 230
+  std::vector     4.62 нс/элемент, page faults: 194
+  std::vector     4.22 нс/элемент, page faults: 194
+  subvector x2    4.95 нс/элемент, page faults: 194
+  subvector x2    5.02 нс/элемент, page faults: 194
+  subvector x2    4.77 нс/элемент, page faults: 194
+  subvector x2    5.11 нс/элемент, page faults: 194
+  subvector x2    4.89 нс/элемент, page faults: 194
+  subvector x2    3.93 нс/элемент, page faults: 194
+  std::vector     4.42 нс/элемент, page faults: 194
+  std::vector     5.91 нс/элемент, page faults: 194
+  std::vector     4.26 нс/элемент, page faults: 194
 с прогревом кучи
-  std::vector    10.01 нс/элемент, page faults: 228
-  std::vector     1.64 нс/элемент, page faults: 0
-  std::vector     1.62 нс/элемент, page faults: 0
-  subvector x2    2.49 нс/элемент, page faults: 0
-  subvector x2    2.52 нс/элемент, page faults: 0
-  subvector x2    2.33 нс/элемент, page faults: 0
-  subvector x2    2.19 нс/элемент, page faults: 0
-  subvector x2    2.07 нс/элемент, page faults: 0
-  subvector x2    2.17 нс/элемент, page faults: 0
-  std::vector     1.82 нс/элемент, page faults: 0
-  std::vector     1.54 нс/элемент, page faults: 0
-  std::vector     1.48 нс/элемент, page faults: 0
+  std::vector     8.38 нс/элемент, page faults: 228
+  std::vector     1.97 нс/элемент, page faults: 0
+  std::vector     1.34 нс/элемент, page faults: 0
+  subvector x2    2.16 нс/элемент, page faults: 0
+  subvector x2    2.29 нс/элемент, page faults: 0
+  subvector x2    3.04 нс/элемент, page faults: 0
+  subvector x2    2.09 нс/элемент, page faults: 0
+  subvector x2    2.10 нс/элемент, page faults: 0
+  subvector x2    2.08 нс/элемент, page faults: 0
+  std::vector     1.35 нс/элемент, page faults: 0
+  std::vector     1.55 нс/элемент, page faults: 0
+  std::vector     1.15 нс/элемент, page faults: 0
