@@ -1,0 +1,127 @@
+			1b37: R_X86_64_PLT32	std::vector<unsigned int, std::allocator<unsigned int> >::operator[](unsigned long)-0x4
+    1b3b:	mov    %rax,%rdi
+    1b3e:	call   1b43 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#3}::operator()(unsigned long) const+0x39>
+			1b3f: R_X86_64_PLT32	scalar_ptr(unsigned int const*)-0x4
+    1b43:	mov    %eax,%eax
+    1b45:	leave
+    1b46:	ret
+    1b47:	nop
+
+0000000000001b48 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#4}::operator()(unsigned long) const>:
+    1b48:	push   %rbp
+    1b49:	mov    %rsp,%rbp
+    1b4c:	sub    $0x10,%rsp
+    1b50:	mov    %rdi,-0x8(%rbp)
+    1b54:	mov    %rsi,-0x10(%rbp)
+    1b58:	mov    -0x8(%rbp),%rax
+    1b5c:	mov    (%rax),%rax
+    1b5f:	mov    -0x8(%rbp),%rdx
+    1b63:	mov    0x8(%rdx),%rdx
+    1b67:	mov    (%rdx),%rdx
+    1b6a:	and    -0x10(%rbp),%rdx
+    1b6e:	mov    %rdx,%rsi
+    1b71:	mov    %rax,%rdi
+    1b74:	call   1b79 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#4}::operator()(unsigned long) const+0x31>
+			1b75: R_X86_64_PLT32	std::vector<Block, std::allocator<Block> >::operator[](unsigned long)-0x4
+    1b79:	mov    (%rax),%rdx
+    1b7c:	mov    0x8(%rax),%rax
+    1b80:	mov    %rdx,%rdi
+    1b83:	mov    %rax,%rsi
+    1b86:	call   1b8b <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#4}::operator()(unsigned long) const+0x43>
+			1b87: R_X86_64_PLT32	block_first_val(Block)-0x4
+--
+    1c02:	call   1c07 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#6}::operator()(unsigned long) const+0x39>
+			1c03: R_X86_64_PLT32	block_first_ptr(Block const*)-0x4
+    1c07:	movzbl %al,%eax
+    1c0a:	leave
+    1c0b:	ret
+
+0000000000001c0c <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#7}::operator()(unsigned long) const>:
+    1c0c:	push   %rbp
+    1c0d:	mov    %rsp,%rbp
+    1c10:	sub    $0x30,%rsp
+    1c14:	mov    %rdi,-0x28(%rbp)
+    1c18:	mov    %rsi,-0x30(%rbp)
+    1c1c:	mov    %fs:0x28,%rax
+    1c25:	mov    %rax,-0x8(%rbp)
+    1c29:	xor    %eax,%eax
+    1c2b:	mov    -0x28(%rbp),%rax
+    1c2f:	mov    (%rax),%rax
+    1c32:	mov    -0x28(%rbp),%rdx
+    1c36:	mov    0x8(%rdx),%rdx
+    1c3a:	mov    (%rdx),%rdx
+    1c3d:	and    -0x30(%rbp),%rdx
+    1c41:	mov    %rdx,%rsi
+    1c44:	mov    %rax,%rdi
+    1c47:	call   1c4c <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#7}::operator()(unsigned long) const+0x40>
+			1c48: R_X86_64_PLT32	std::vector<Block, std::allocator<Block> >::operator[](unsigned long)-0x4
+    1c4c:	mov    (%rax),%rdx
+    1c4f:	mov    0x8(%rax),%rax
+    1c53:	mov    %rdx,%rdi
+    1c56:	mov    %rax,%rsi
+    1c59:	call   1c5e <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)::{lambda(unsigned long)#7}::operator()(unsigned long) const+0x52>
+			1c5a: R_X86_64_PLT32	block_full_val(Block)-0x4
+--
+    270e:	call   2713 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x783>
+			270f: R_X86_64_PLT32	fill_block(Block&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)-0x4
+    2713:	addq   $0x1,-0x1a50(%rbp)
+    271b:	mov    -0x1a50(%rbp),%rax
+    2722:	cmp    -0x1a30(%rbp),%rax
+    2729:	jb     26d3 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x743>
+    272b:	movq   $0x0,-0x1a48(%rbp)
+    2736:	jmp    2997 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0xa07>
+    273b:	mov    -0x1a48(%rbp),%rdx
+    2742:	lea    -0x18f0(%rbp),%rax
+    2749:	mov    %rdx,%rsi
+    274c:	mov    %rax,%rdi
+    274f:	call   2754 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x7c4>
+			2750: R_X86_64_PLT32	std::vector<Block, std::allocator<Block> >::operator[](unsigned long)-0x4
+    2754:	mov    %rax,%rdi
+    2757:	call   275c <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x7cc>
+			2758: R_X86_64_PLT32	block_full_ref(Block const&)-0x4
+    275c:	mov    %rax,-0x1940(%rbp)
+    2763:	mov    %rdx,-0x1938(%rbp)
+    276a:	mov    -0x1a48(%rbp),%rdx
+    2771:	lea    -0x18f0(%rbp),%rax
+    2778:	mov    %rdx,%rsi
+    277b:	mov    %rax,%rdi
+    277e:	call   2783 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x7f3>
+			277f: R_X86_64_PLT32	std::vector<Block, std::allocator<Block> >::operator[](unsigned long)-0x4
+    2783:	mov    (%rax),%rdx
+    2786:	mov    0x8(%rax),%rax
+    278a:	mov    %rdx,%rdi
+    278d:	mov    %rax,%rsi
+    2790:	call   2795 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x805>
+			2791: R_X86_64_PLT32	block_full_val(Block)-0x4
+--
+    2899:	mov    %rax,-0x19e0(%rbp)
+    28a0:	nop
+    28a1:	nop
+    28a2:	lea    -0x18b0(%rbp),%rdx
+    28a9:	lea    -0x17d0(%rbp),%rax
+    28b0:	lea    0x0(%rip),%rcx        # 28b7 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x927>
+			28b3: R_X86_64_PC32	.rodata+0x25c
+    28b7:	mov    %rcx,%rsi
+    28ba:	mov    %rax,%rdi
+    28bd:	call   28c2 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x932>
+			28be: R_X86_64_PLT32	std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(char const*, std::allocator<char> const&)-0x4
+    28c2:	mov    -0x28(%rbp),%rax
+    28c6:	sub    %fs:0x28,%rax
+    28cf:	je     28d6 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x946>
+    28d1:	call   28d6 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x946>
+			28d2: R_X86_64_PLT32	__stack_chk_fail-0x4
+    28d6:	lea    -0x17d0(%rbp),%rax
+    28dd:	mov    %rax,%rdi
+    28e0:	call   0 <(anonymous namespace)::die(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)>
+    28e5:	mov    -0x1a48(%rbp),%rdx
+    28ec:	lea    -0x18f0(%rbp),%rax
+    28f3:	mov    %rdx,%rsi
+    28f6:	mov    %rax,%rdi
+    28f9:	call   28fe <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x96e>
+			28fa: R_X86_64_PLT32	std::vector<Block, std::allocator<Block> >::operator[](unsigned long)-0x4
+    28fe:	mov    (%rax),%rdx
+    2901:	mov    0x8(%rax),%rax
+    2905:	mov    %rdx,%rdi
+    2908:	mov    %rax,%rsi
+    290b:	call   2910 <(anonymous namespace)::experiment_a((anonymous namespace)::Options const&)+0x980>
+			290c: R_X86_64_PLT32	block_first_val(Block)-0x4

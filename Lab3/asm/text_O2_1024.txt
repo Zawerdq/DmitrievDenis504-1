@@ -1,0 +1,317 @@
+
+build/text_O2_1024.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <as_text(Block const&)>:
+   0:	endbr64
+   4:	mov    %rdi,%rax
+   7:	mov    $0x3ff,%edx
+   c:	ret
+   d:	nopl   (%rax)
+
+0000000000000010 <scalar_val(unsigned int)>:
+  10:	endbr64
+  14:	lea    0x1(%rdi),%eax
+  17:	ret
+  18:	nopl   0x0(%rax,%rax,1)
+
+0000000000000020 <scalar_ref(unsigned int const&)>:
+  20:	endbr64
+  24:	mov    (%rdi),%eax
+  26:	add    $0x1,%eax
+  29:	ret
+  2a:	nopw   0x0(%rax,%rax,1)
+
+0000000000000030 <scalar_ptr(unsigned int const*)>:
+  30:	endbr64
+  34:	mov    (%rdi),%eax
+  36:	add    $0x1,%eax
+  39:	ret
+  3a:	nopw   0x0(%rax,%rax,1)
+
+0000000000000040 <block_first_val(Block)>:
+  40:	endbr64
+  44:	movzbl 0x8(%rsp),%eax
+  49:	ret
+  4a:	nopw   0x0(%rax,%rax,1)
+
+0000000000000050 <block_first_ref(Block const&)>:
+  50:	endbr64
+  54:	movzbl (%rdi),%eax
+  57:	ret
+  58:	nopl   0x0(%rax,%rax,1)
+
+0000000000000060 <block_first_ptr(Block const*)>:
+  60:	endbr64
+  64:	movzbl (%rdi),%eax
+  67:	ret
+  68:	nopl   0x0(%rax,%rax,1)
+
+0000000000000070 <block_full_val(Block)>:
+  70:	endbr64
+  74:	lea    0x8(%rsp),%rax
+  79:	xor    %r9d,%r9d
+  7c:	xor    %edi,%edi
+  7e:	xor    %ecx,%ecx
+  80:	lea    0x407(%rsp),%r8
+  88:	jmp    a7 <block_full_val(Block)+0x37>
+  8a:	nopw   0x0(%rax,%rax,1)
+  90:	test   %dil,%dil
+  93:	jne    9e <block_full_val(Block)+0x2e>
+  95:	add    $0x1,%r9
+  99:	mov    $0x1,%edi
+  9e:	add    $0x1,%rax
+  a2:	cmp    %r8,%rax
+  a5:	je     c4 <block_full_val(Block)+0x54>
+  a7:	movzbl (%rax),%esi
+  aa:	add    %rsi,%rcx
+  ad:	cmp    $0x20,%sil
+  b1:	je     b9 <block_full_val(Block)+0x49>
+  b3:	cmp    $0x9,%sil
+  b7:	jne    90 <block_full_val(Block)+0x20>
+  b9:	add    $0x1,%rax
+  bd:	xor    %edi,%edi
+  bf:	cmp    %r8,%rax
+  c2:	jne    a7 <block_full_val(Block)+0x37>
+  c4:	mov    %r9,%rax
+  c7:	mov    %rcx,%rdx
+  ca:	ret
+  cb:	nopl   0x0(%rax,%rax,1)
+
+00000000000000d0 <block_full_ref(Block const&)>:
+  d0:	endbr64
+  d4:	lea    0x3ff(%rdi),%r8
+  db:	xor    %r9d,%r9d
+  de:	xor    %esi,%esi
+  e0:	xor    %edx,%edx
+  e2:	jmp    ff <block_full_ref(Block const&)+0x2f>
+  e4:	nopl   0x0(%rax)
+  e8:	test   %sil,%sil
+  eb:	jne    f6 <block_full_ref(Block const&)+0x26>
+  ed:	add    $0x1,%r9
+  f1:	mov    $0x1,%esi
+  f6:	add    $0x1,%rdi
+  fa:	cmp    %r8,%rdi
+  fd:	je     11a <block_full_ref(Block const&)+0x4a>
+  ff:	movzbl (%rdi),%ecx
+ 102:	add    %rcx,%rdx
+ 105:	cmp    $0x20,%cl
+ 108:	je     10f <block_full_ref(Block const&)+0x3f>
+ 10a:	cmp    $0x9,%cl
+ 10d:	jne    e8 <block_full_ref(Block const&)+0x18>
+ 10f:	add    $0x1,%rdi
+ 113:	xor    %esi,%esi
+ 115:	cmp    %r8,%rdi
+ 118:	jne    ff <block_full_ref(Block const&)+0x2f>
+ 11a:	mov    %r9,%rax
+ 11d:	ret
+ 11e:	xchg   %ax,%ax
+
+0000000000000120 <block_full_ptr(Block const*)>:
+ 120:	endbr64
+ 124:	lea    0x3ff(%rdi),%r8
+ 12b:	xor    %r9d,%r9d
+ 12e:	xor    %esi,%esi
+ 130:	xor    %edx,%edx
+ 132:	jmp    14f <block_full_ptr(Block const*)+0x2f>
+ 134:	nopl   0x0(%rax)
+ 138:	test   %sil,%sil
+ 13b:	jne    146 <block_full_ptr(Block const*)+0x26>
+ 13d:	add    $0x1,%r9
+ 141:	mov    $0x1,%esi
+ 146:	add    $0x1,%rdi
+ 14a:	cmp    %r8,%rdi
+ 14d:	je     16a <block_full_ptr(Block const*)+0x4a>
+ 14f:	movzbl (%rdi),%ecx
+ 152:	add    %rcx,%rdx
+ 155:	cmp    $0x20,%cl
+ 158:	je     15f <block_full_ptr(Block const*)+0x3f>
+ 15a:	cmp    $0x9,%cl
+ 15d:	jne    138 <block_full_ptr(Block const*)+0x18>
+ 15f:	add    $0x1,%rdi
+ 163:	xor    %esi,%esi
+ 165:	cmp    %r8,%rdi
+ 168:	jne    14f <block_full_ptr(Block const*)+0x2f>
+ 16a:	mov    %r9,%rax
+ 16d:	ret
+ 16e:	xchg   %ax,%ax
+
+0000000000000170 <text_first_val(Text)>:
+ 170:	endbr64
+ 174:	xor    %eax,%eax
+ 176:	test   %rsi,%rsi
+ 179:	je     17e <text_first_val(Text)+0xe>
+ 17b:	movzbl (%rdi),%eax
+ 17e:	ret
+ 17f:	nop
+
+0000000000000180 <text_first_ref(Text const&)>:
+ 180:	endbr64
+ 184:	xor    %eax,%eax
+ 186:	cmpq   $0x0,0x8(%rdi)
+ 18b:	je     193 <text_first_ref(Text const&)+0x13>
+ 18d:	mov    (%rdi),%rax
+ 190:	movzbl (%rax),%eax
+ 193:	ret
+ 194:	data16 cs nopw 0x0(%rax,%rax,1)
+ 19f:	nop
+
+00000000000001a0 <text_first_ptr(Text const*)>:
+ 1a0:	endbr64
+ 1a4:	xor    %eax,%eax
+ 1a6:	cmpq   $0x0,0x8(%rdi)
+ 1ab:	je     1b3 <text_first_ptr(Text const*)+0x13>
+ 1ad:	mov    (%rdi),%rax
+ 1b0:	movzbl (%rax),%eax
+ 1b3:	ret
+ 1b4:	data16 cs nopw 0x0(%rax,%rax,1)
+ 1bf:	nop
+
+00000000000001c0 <text_full_val(Text)>:
+ 1c0:	endbr64
+ 1c4:	mov    %rsi,%rdx
+ 1c7:	test   %rsi,%rsi
+ 1ca:	je     220 <text_full_val(Text)+0x60>
+ 1cc:	lea    (%rsi,%rdi,1),%r8
+ 1d0:	xor    %r9d,%r9d
+ 1d3:	xor    %esi,%esi
+ 1d5:	xor    %edx,%edx
+ 1d7:	jmp    1f7 <text_full_val(Text)+0x37>
+ 1d9:	nopl   0x0(%rax)
+ 1e0:	test   %sil,%sil
+ 1e3:	jne    1ee <text_full_val(Text)+0x2e>
+ 1e5:	add    $0x1,%r9
+ 1e9:	mov    $0x1,%esi
+ 1ee:	add    $0x1,%rdi
+ 1f2:	cmp    %rdi,%r8
+ 1f5:	je     212 <text_full_val(Text)+0x52>
+ 1f7:	movzbl (%rdi),%ecx
+ 1fa:	add    %rcx,%rdx
+ 1fd:	cmp    $0x20,%cl
+ 200:	je     207 <text_full_val(Text)+0x47>
+ 202:	cmp    $0x9,%cl
+ 205:	jne    1e0 <text_full_val(Text)+0x20>
+ 207:	add    $0x1,%rdi
+ 20b:	xor    %esi,%esi
+ 20d:	cmp    %rdi,%r8
+ 210:	jne    1f7 <text_full_val(Text)+0x37>
+ 212:	mov    %r9,%rax
+ 215:	ret
+ 216:	cs nopw 0x0(%rax,%rax,1)
+ 220:	xor    %r9d,%r9d
+ 223:	mov    %r9,%rax
+ 226:	ret
+ 227:	nopw   0x0(%rax,%rax,1)
+
+0000000000000230 <text_full_ref(Text const&)>:
+ 230:	endbr64
+ 234:	mov    0x8(%rdi),%rcx
+ 238:	mov    (%rdi),%rax
+ 23b:	test   %rcx,%rcx
+ 23e:	je     290 <text_full_ref(Text const&)+0x60>
+ 240:	lea    (%rax,%rcx,1),%r8
+ 244:	xor    %r9d,%r9d
+ 247:	xor    %edi,%edi
+ 249:	xor    %ecx,%ecx
+ 24b:	jmp    267 <text_full_ref(Text const&)+0x37>
+ 24d:	nopl   (%rax)
+ 250:	test   %dil,%dil
+ 253:	jne    25e <text_full_ref(Text const&)+0x2e>
+ 255:	add    $0x1,%r9
+ 259:	mov    $0x1,%edi
+ 25e:	add    $0x1,%rax
+ 262:	cmp    %rax,%r8
+ 265:	je     284 <text_full_ref(Text const&)+0x54>
+ 267:	movzbl (%rax),%esi
+ 26a:	add    %rsi,%rcx
+ 26d:	cmp    $0x20,%sil
+ 271:	je     279 <text_full_ref(Text const&)+0x49>
+ 273:	cmp    $0x9,%sil
+ 277:	jne    250 <text_full_ref(Text const&)+0x20>
+ 279:	add    $0x1,%rax
+ 27d:	xor    %edi,%edi
+ 27f:	cmp    %rax,%r8
+ 282:	jne    267 <text_full_ref(Text const&)+0x37>
+ 284:	mov    %r9,%rax
+ 287:	mov    %rcx,%rdx
+ 28a:	ret
+ 28b:	nopl   0x0(%rax,%rax,1)
+ 290:	xor    %r9d,%r9d
+ 293:	mov    %rcx,%rdx
+ 296:	mov    %r9,%rax
+ 299:	ret
+ 29a:	nopw   0x0(%rax,%rax,1)
+
+00000000000002a0 <text_full_ptr(Text const*)>:
+ 2a0:	endbr64
+ 2a4:	mov    0x8(%rdi),%rcx
+ 2a8:	mov    (%rdi),%rax
+ 2ab:	test   %rcx,%rcx
+ 2ae:	je     300 <text_full_ptr(Text const*)+0x60>
+ 2b0:	lea    (%rax,%rcx,1),%r8
+ 2b4:	xor    %r9d,%r9d
+ 2b7:	xor    %edi,%edi
+ 2b9:	xor    %ecx,%ecx
+ 2bb:	jmp    2d7 <text_full_ptr(Text const*)+0x37>
+ 2bd:	nopl   (%rax)
+ 2c0:	test   %dil,%dil
+ 2c3:	jne    2ce <text_full_ptr(Text const*)+0x2e>
+ 2c5:	add    $0x1,%r9
+ 2c9:	mov    $0x1,%edi
+ 2ce:	add    $0x1,%rax
+ 2d2:	cmp    %rax,%r8
+ 2d5:	je     2f4 <text_full_ptr(Text const*)+0x54>
+ 2d7:	movzbl (%rax),%esi
+ 2da:	add    %rsi,%rcx
+ 2dd:	cmp    $0x20,%sil
+ 2e1:	je     2e9 <text_full_ptr(Text const*)+0x49>
+ 2e3:	cmp    $0x9,%sil
+ 2e7:	jne    2c0 <text_full_ptr(Text const*)+0x20>
+ 2e9:	add    $0x1,%rax
+ 2ed:	xor    %edi,%edi
+ 2ef:	cmp    %rax,%r8
+ 2f2:	jne    2d7 <text_full_ptr(Text const*)+0x37>
+ 2f4:	mov    %r9,%rax
+ 2f7:	mov    %rcx,%rdx
+ 2fa:	ret
+ 2fb:	nopl   0x0(%rax,%rax,1)
+ 300:	xor    %r9d,%r9d
+ 303:	mov    %rcx,%rdx
+ 306:	mov    %r9,%rax
+ 309:	ret
+ 30a:	nopw   0x0(%rax,%rax,1)
+
+0000000000000310 <clone_text(Text)>:
+ 310:	endbr64
+ 314:	push   %r12
+ 316:	lea    0x1(%rsi),%r12
+ 31a:	push   %rbp
+ 31b:	mov    %rdi,%rbp
+ 31e:	mov    %r12,%rdi
+ 321:	push   %rbx
+ 322:	mov    %rsi,%rbx
+ 325:	call   32a <clone_text(Text)+0x1a>
+ 32a:	mov    %rax,%r8
+ 32d:	test   %rbx,%rbx
+ 330:	jne    340 <clone_text(Text)+0x30>
+ 332:	movb   $0x0,(%r8,%rbx,1)
+ 337:	mov    %r8,%rax
+ 33a:	pop    %rbx
+ 33b:	pop    %rbp
+ 33c:	pop    %r12
+ 33e:	ret
+ 33f:	nop
+ 340:	mov    %r12,%rcx
+ 343:	mov    %rbx,%rdx
+ 346:	mov    %rbp,%rsi
+ 349:	mov    %rax,%rdi
+ 34c:	call   351 <clone_text(Text)+0x41>
+ 351:	mov    %rax,%r8
+ 354:	movb   $0x0,(%r8,%rbx,1)
+ 359:	mov    %r8,%rax
+ 35c:	pop    %rbx
+ 35d:	pop    %rbp
+ 35e:	pop    %r12
+ 360:	ret

@@ -1,0 +1,6 @@
+research_*
+tests
+*.o
+*.out
+__pycache__/
+build/
