@@ -12,7 +12,11 @@
 | `run_all.sh` | тесты → сборка → замеры → графики |
 | `plot.py` | сводные таблицы `data/summary_*.csv` и графики `plots/*.png` |
 | `tables.py` | markdown-таблицы для отчёта |
-| `control_order.cpp` | контрольный опыт: влияние порядка замеров на page faults |
+| `run_controls.sh` | все контрольные опыты → `data/control_*.txt` |
+| `control_order.cpp` | влияние порядка замеров и прогрева кучи на page faults |
+| `control_malloc.cpp` | когда glibc отдаёт большой блок через `mmap`, а когда из кучи |
+| `control_copy.cpp` | скорость `memcpy` в зависимости от размера буфера (кэш) |
+| `control_std_vs_sub.cpp` | `std::vector` против subvector ×2: ошибка JCC, `rep movsb`, некэширующие записи |
 | `data/` | исходные CSV |
 | `plots/` | графики |
 
@@ -48,7 +52,7 @@ void clear();                           // size = 0, capacity не меняет�
 
 ```bash
 g++ -std=c++17 -O0 -Wall -Wextra -fsanitize=address,undefined tests.cpp -o tests && ./tests
-g++ -std=c++17 -O2 -Wall -Wextra bench.cpp -o bench
+g++ -std=c++17 -O2 -Wall -Wextra -Wa,-mbranches-within-32B-boundaries bench.cpp -o bench   # флаг — см. ниже
 ./bench capacity   data        # capacity std::vector от size + конструкторы
 ./bench strategies data        # +10, +100, ×1.5, ×2, std::vector, n = 0.1…10 млн
 ./bench factor     data        # время от множителя, n = 10⁷
@@ -74,6 +78,12 @@ python3 plot.py
   (подробно — в отчёте, раздел 2).
 * Замеряемые функции помечены `__attribute__((flatten))`, чтобы `push_back` и у `std::vector`, и у subvector
   был одинаково встроен в цикл.
+* Счётчики перевыделений `std::vector` собираются отдельным проходом один раз на точку и **до** замеров:
+  когда этот проход шёл после каждого замера, он менял состояние кучи и замедлял следующий замер `std::vector`.
+* Сборка с `-Wa,-mbranches-within-32B-boundaries`. Процессор машины (Intel, модель 85 — Skylake-SP /
+  Cascade Lake) подвержен ошибке JCC: цикл, условный переход которого касается 32-байтной границы, исполняется
+  медленнее, и скорость одинаковых циклов зависит от их случайного расположения в памяти. Без флага цикл
+  `std::vector` случайно оказался в «плохом» месте и был в ~1.5 раза медленнее (подробно — отчёт, раздел 2).
 * Счётчики перевыделений для `std::vector` собираются отдельным незамеряемым проходом по изменению `capacity()`.
 
 ## Платформа, на которой получены данные в `data/`
@@ -81,9 +91,9 @@ python3 plot.py
 | | |
 |---|---|
 | ОС | Linux 6.18 x86_64 (Ubuntu 24.04, виртуальная машина) |
-| Процессор | Intel Xeon @ 2.80 GHz, 2 vCPU, 8 ГБ ОЗУ |
+| Процессор | Intel Xeon @ 2.80 GHz (family 6, model 85), 2 vCPU, 8 ГБ ОЗУ; L2 1 МБ на ядро, L3 33 МБ (по `lscpu`) |
 | Компилятор | g++ 13.3.0, стандартная библиотека libstdc++ |
-| Флаги | `-std=c++17 -O2` |
+| Флаги | `-std=c++17 -O2 -Wa,-mbranches-within-32B-boundaries` |
 
 ## Форматы CSV
 

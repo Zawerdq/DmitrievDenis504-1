@@ -78,12 +78,19 @@ __attribute__((flatten)) double time_std(unsigned int n, bool reserve, std::size
     return t1 - t0;
 }
 
-// То же для std::vector. Перевыделения считаем по изменению capacity.
+// Замер std::vector: только время и page faults.
 Run fill_std(unsigned int n, bool reserve) {
     std::size_t final_cap = 0;
     long faults = 0;
     double seconds = time_std(n, reserve, final_cap, faults);
-    // Отдельный (не замеряемый) проход для статистики перевыделений.
+    return {seconds, 0, 0, 0, static_cast<unsigned long long>(final_cap), faults};
+}
+
+// Статистика перевыделений std::vector: отдельный проход по изменению capacity().
+// Вызывается ОДИН раз на точку (стратегия, n) и ДО прогрева, а не после каждого замера:
+// этот проход сам выделяет и освобождает большие буферы и меняет состояние кучи, а в первой версии
+// он шёл перед каждым следующим замером std::vector и делал его на 20–50 % медленнее (см. отчёт).
+Run stats_std(unsigned int n, bool reserve) {
     std::vector<int> w;
     if (reserve) w.reserve(n);
     unsigned long long re = reserve ? 1 : 0, moved = 0, peak = reserve ? n : 0;
@@ -98,13 +105,15 @@ Run fill_std(unsigned int n, bool reserve) {
             cap = w.capacity();
         }
     }
-    return {seconds, re, moved, peak, static_cast<unsigned long long>(final_cap), faults};
+    g_sink = g_sink + w.size();
+    return {0, re, moved, peak, static_cast<unsigned long long>(w.capacity()), 0};
 }
 
 struct Strategy {
     std::string name;
     std::function<Run(unsigned int)> fill;
-    bool quadratic;  // для аддитивных стратегий время растёт ~ n^2
+    bool quadratic;                          // для аддитивных стратегий время растёт ~ n^2
+    std::function<Run(unsigned int)> stats;  // если задано — счётчики берутся отсюда (один раз на точку)
 };
 
 double median(std::vector<double> v) {
@@ -140,11 +149,18 @@ void measure_point(std::ofstream& f, const std::string& series, const std::strin
         std::cerr << "  " << s.name << " n=" << n << " skipped (predicted " << predicted << " s)\n";
         return;
     }
-    s.fill(std::min(n, 100000u));  // короткий прогрев кода
+    Run st_run{};
+    if (s.stats) st_run = s.stats(n);  // до прогрева и замеров
+    s.fill(std::min(n, 100000u));      // короткий прогрев кода
     int T = trials_for(predicted);
     std::vector<double> ts;
     for (int t = 1; t <= T; ++t) {
         Run r = s.fill(n);
+        if (s.stats) {
+            r.reallocations = st_run.reallocations;
+            r.moved = st_run.moved;
+            r.peak_elements = st_run.peak_elements;
+        }
         ts.push_back(r.seconds);
         f << series << ',' << s.name << ',' << param << ',' << n << ',' << t << ',' << r.seconds << ','
           << r.reallocations << ',' << r.moved << ',' << r.peak_elements << ',' << r.final_capacity << ','
@@ -247,7 +263,7 @@ int main(int argc, char** argv) {
     heap_warmup();
 
     auto sub = [](const std::string& name, Growth g) {
-        return Strategy{name, [g](unsigned int n) { return fill_subvector(g, n); }, g.kind == Growth::Add};
+        return Strategy{name, [g](unsigned int n) { return fill_subvector(g, n); }, g.kind == Growth::Add, nullptr};
     };
 
     if (mode == "capacity" || mode == "all") {
@@ -262,8 +278,10 @@ int main(int argc, char** argv) {
         for (unsigned int n = 100000; n < 1000000; n += 100000) ns.push_back(n);   // мелкая сетка: видна квадратичность +10/+100
         for (unsigned int n = 1000000; n <= 10000000; n += 1000000) ns.push_back(n);
         std::vector<Strategy> ss = {
-            Strategy{"std::vector", [](unsigned int n) { return fill_std(n, false); }, false},
-            Strategy{"std::vector+reserve", [](unsigned int n) { return fill_std(n, true); }, false},
+            Strategy{"std::vector", [](unsigned int n) { return fill_std(n, false); }, false,
+                     [](unsigned int n) { return stats_std(n, false); }},
+            Strategy{"std::vector+reserve", [](unsigned int n) { return fill_std(n, true); }, false,
+                     [](unsigned int n) { return stats_std(n, true); }},
             sub("x2", Growth::mul(2.0)),
             sub("x1.5", Growth::mul(1.5)),
             sub("+100", Growth::add(100)),
