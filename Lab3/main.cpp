@@ -6,7 +6,7 @@
 // Опции:
 //   --seed S       начальное значение генератора (по умолчанию DEFAULT_SEED)
 //   --input FILE   брать текст из файла (записи по строкам) вместо генератора
-//   --inputs M     число различных входов каждой длины (по умолчанию 8)
+//   --inputs M     число различных входов каждой длины, степень двойки (по умолчанию 8)
 //   --trials T     число измерений каждого условия (по умолчанию 7, минимум 5)
 //   --target-ms X  минимальная длительность одной серии при подборе повторений (по умолчанию 40)
 #include <algorithm>
@@ -69,7 +69,8 @@ Options parse(int argc, char** argv) {
         else die("unknown option " + a);
     }
     if (o.trials < 5) die("need at least 5 trials");
-    if (o.inputs < 2) die("need at least 2 different inputs");
+    if (o.inputs < 2 || (o.inputs & (o.inputs - 1)) != 0)
+        die("--inputs must be a power of two >= 2 (index = g & (M-1), without division in the timed loop)");
     return o;
 }
 
@@ -194,6 +195,7 @@ void experiment_a(const Options& o) {
     TimeCsv csv(o.out_dir + "/A_" + o.opt_label + "_" + std::to_string(BLOCK_SIZE) + ".csv");
     std::mt19937 order_rng(o.seed + BLOCK_SIZE);
     const std::size_t M = o.inputs;
+    const std::size_t mask = M - 1;  // вход номер g & mask: смена входа без деления в замеряемом цикле
 
     // ---- скаляр: точка отсчёта ----
     if (o.scalar) {
@@ -203,9 +205,9 @@ void experiment_a(const Options& o) {
             if (scalar_val(xs[i]) != scalar_ref(xs[i]) || scalar_ref(xs[i]) != scalar_ptr(&xs[i]))
                 die("scalar check failed");
         std::vector<Variant> v = {
-            make_variant("value", [&](std::size_t g) { return (unsigned long long)scalar_val(xs[g % M]); }),
-            make_variant("ref", [&](std::size_t g) { return (unsigned long long)scalar_ref(xs[g % M]); }),
-            make_variant("ptr", [&](std::size_t g) { return (unsigned long long)scalar_ptr(&xs[g % M]); }),
+            make_variant("value", [&](std::size_t g) { return (unsigned long long)scalar_val(xs[g & mask]); }),
+            make_variant("ref", [&](std::size_t g) { return (unsigned long long)scalar_ref(xs[g & mask]); }),
+            make_variant("ptr", [&](std::size_t g) { return (unsigned long long)scalar_ptr(&xs[g & mask]); }),
         };
         std::size_t G = calibrate(v[0], o.target_ms);
         measure_group(csv, order_rng, o, "scalar", 0, "short", 1, v, G);
@@ -224,14 +226,14 @@ void experiment_a(const Options& o) {
             if (block_first_val(blocks[i]) != block_first_ptr(&blocks[i])) die("Block first check failed");
         }
         std::vector<Variant> shortv = {
-            make_variant("value", [&](std::size_t g) { return (unsigned long long)block_first_val(blocks[g % M]); }),
-            make_variant("ref", [&](std::size_t g) { return (unsigned long long)block_first_ref(blocks[g % M]); }),
-            make_variant("ptr", [&](std::size_t g) { return (unsigned long long)block_first_ptr(&blocks[g % M]); }),
+            make_variant("value", [&](std::size_t g) { return (unsigned long long)block_first_val(blocks[g & mask]); }),
+            make_variant("ref", [&](std::size_t g) { return (unsigned long long)block_first_ref(blocks[g & mask]); }),
+            make_variant("ptr", [&](std::size_t g) { return (unsigned long long)block_first_ptr(&blocks[g & mask]); }),
         };
         std::vector<Variant> fullv = {
-            make_variant("value", [&](std::size_t g) { return fold(block_full_val(blocks[g % M])); }),
-            make_variant("ref", [&](std::size_t g) { return fold(block_full_ref(blocks[g % M])); }),
-            make_variant("ptr", [&](std::size_t g) { return fold(block_full_ptr(&blocks[g % M])); }),
+            make_variant("value", [&](std::size_t g) { return fold(block_full_val(blocks[g & mask])); }),
+            make_variant("ref", [&](std::size_t g) { return fold(block_full_ref(blocks[g & mask])); }),
+            make_variant("ptr", [&](std::size_t g) { return fold(block_full_ptr(&blocks[g & mask])); }),
         };
         measure_group(csv, order_rng, o, "Block", block_length(), "short", 1, shortv,
                       calibrate(shortv[0], o.target_ms));
@@ -250,14 +252,14 @@ void experiment_a(const Options& o) {
             if (!(s == text_full_val(texts[i]) && s == text_full_ptr(&texts[i]))) die("Text check failed");
         }
         std::vector<Variant> shortv = {
-            make_variant("value", [&](std::size_t g) { return (unsigned long long)text_first_val(texts[g % M]); }),
-            make_variant("ref", [&](std::size_t g) { return (unsigned long long)text_first_ref(texts[g % M]); }),
-            make_variant("ptr", [&](std::size_t g) { return (unsigned long long)text_first_ptr(&texts[g % M]); }),
+            make_variant("value", [&](std::size_t g) { return (unsigned long long)text_first_val(texts[g & mask]); }),
+            make_variant("ref", [&](std::size_t g) { return (unsigned long long)text_first_ref(texts[g & mask]); }),
+            make_variant("ptr", [&](std::size_t g) { return (unsigned long long)text_first_ptr(&texts[g & mask]); }),
         };
         std::vector<Variant> fullv = {
-            make_variant("value", [&](std::size_t g) { return fold(text_full_val(texts[g % M])); }),
-            make_variant("ref", [&](std::size_t g) { return fold(text_full_ref(texts[g % M])); }),
-            make_variant("ptr", [&](std::size_t g) { return fold(text_full_ptr(&texts[g % M])); }),
+            make_variant("value", [&](std::size_t g) { return fold(text_full_val(texts[g & mask])); }),
+            make_variant("ref", [&](std::size_t g) { return fold(text_full_ref(texts[g & mask])); }),
+            make_variant("ptr", [&](std::size_t g) { return fold(text_full_ptr(&texts[g & mask])); }),
         };
         measure_group(csv, order_rng, o, "Text", L, "short", 1, shortv, calibrate(shortv[0], o.target_ms));
         measure_group(csv, order_rng, o, "Text", L, "full", 1, fullv, calibrate(fullv[0], o.target_ms));
@@ -313,7 +315,7 @@ const char* bmode_name(BMode m) {
     return "?";
 }
 
-// Одна группа: строка texts[g % M] анализируется ровно K раз полным обработчиком.
+// Одна группа: строка texts[g & mask] анализируется ровно K раз полным обработчиком.
 template <bool Count>
 unsigned long long run_group(BMode mode, const Text& src, std::size_t K, Counters& c) {
     unsigned long long acc = 0;
@@ -371,13 +373,13 @@ void experiment_b(const Options& o) {
 
     for (std::size_t L : lengths) {
         Sources src = make_sources(o, L);
-        const std::size_t M = src.texts.size();
+        const std::size_t mask = src.texts.size() - 1;
         for (std::size_t K : Ks) {
             std::vector<Variant> vars;
             for (BMode m : modes) {
-                vars.push_back(make_variant(bmode_name(m), [&src, M, m, K](std::size_t g) {
+                vars.push_back(make_variant(bmode_name(m), [&src, mask, m, K](std::size_t g) {
                     Counters unused;  // во временном прогоне счётчики отключены (Count=false)
-                    return run_group<false>(m, src.texts[g % M], K, unused);
+                    return run_group<false>(m, src.texts[g & mask], K, unused);
                 }));
             }
             // G подбирается по самому дорогому режиму (copy_each) и фиксируется для всех трёх.
@@ -388,7 +390,7 @@ void experiment_b(const Options& o) {
             for (BMode m : modes) {
                 Counters c;
                 unsigned long long acc = 0;
-                for (std::size_t g = 0; g < G; ++g) acc += run_group<true>(m, src.texts[g % M], K, c);
+                for (std::size_t g = 0; g < G; ++g) acc += run_group<true>(m, src.texts[g & mask], K, c);
                 if (c.current != 0) die("leak in counted run");
                 unsigned long long pa = 0, pc = 0, pp = 0;
                 if (m == BMode::copy_each) { pa = G * K; pc = G * K * L; pp = L + 1; }

@@ -1,0 +1,5 @@
+type,length,sizeof_bytes
+unsigned int,0,4
+Block,1023,1024
+Text,1023,16
+pointer,0,8

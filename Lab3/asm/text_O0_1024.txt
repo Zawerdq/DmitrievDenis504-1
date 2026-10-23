@@ -1,0 +1,352 @@
+
+build/text_O0_1024.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <(anonymous namespace)::first_byte(char const*, unsigned long)>:
+   0:	push   %rbp
+   1:	mov    %rsp,%rbp
+   4:	mov    %rdi,-0x8(%rbp)
+   8:	mov    %rsi,-0x10(%rbp)
+   c:	cmpq   $0x0,-0x10(%rbp)
+  11:	je     1c <(anonymous namespace)::first_byte(char const*, unsigned long)+0x1c>
+  13:	mov    -0x8(%rbp),%rax
+  17:	movzbl (%rax),%eax
+  1a:	jmp    21 <(anonymous namespace)::first_byte(char const*, unsigned long)+0x21>
+  1c:	mov    $0x0,%eax
+  21:	pop    %rbp
+  22:	ret
+
+0000000000000023 <(anonymous namespace)::is_sep(unsigned char)>:
+  23:	push   %rbp
+  24:	mov    %rsp,%rbp
+  27:	mov    %edi,%eax
+  29:	mov    %al,-0x4(%rbp)
+  2c:	cmpb   $0x20,-0x4(%rbp)
+  30:	je     38 <(anonymous namespace)::is_sep(unsigned char)+0x15>
+  32:	cmpb   $0x9,-0x4(%rbp)
+  36:	jne    3f <(anonymous namespace)::is_sep(unsigned char)+0x1c>
+  38:	mov    $0x1,%eax
+  3d:	jmp    44 <(anonymous namespace)::is_sep(unsigned char)+0x21>
+  3f:	mov    $0x0,%eax
+  44:	pop    %rbp
+  45:	ret
+
+0000000000000046 <(anonymous namespace)::full_pass(char const*, unsigned long)>:
+  46:	push   %rbp
+  47:	mov    %rsp,%rbp
+  4a:	sub    $0x40,%rsp
+  4e:	mov    %rdi,-0x38(%rbp)
+  52:	mov    %rsi,-0x40(%rbp)
+  56:	mov    %fs:0x28,%rax
+  5f:	mov    %rax,-0x8(%rbp)
+  63:	xor    %eax,%eax
+  65:	movq   $0x0,-0x20(%rbp)
+  6d:	movq   $0x0,-0x18(%rbp)
+  75:	movb   $0x0,-0x2a(%rbp)
+  79:	movq   $0x0,-0x28(%rbp)
+  81:	jmp    d8 <(anonymous namespace)::full_pass(char const*, unsigned long)+0x92>
+  83:	mov    -0x38(%rbp),%rdx
+  87:	mov    -0x28(%rbp),%rax
+  8b:	add    %rdx,%rax
+  8e:	movzbl (%rax),%eax
+  91:	mov    %al,-0x29(%rbp)
+  94:	mov    -0x18(%rbp),%rdx
+  98:	movzbl -0x29(%rbp),%eax
+  9c:	add    %rdx,%rax
+  9f:	mov    %rax,-0x18(%rbp)
+  a3:	movzbl -0x29(%rbp),%eax
+  a7:	mov    %eax,%edi
+  a9:	call   23 <(anonymous namespace)::is_sep(unsigned char)>
+  ae:	test   %al,%al
+  b0:	je     b8 <(anonymous namespace)::full_pass(char const*, unsigned long)+0x72>
+  b2:	movb   $0x0,-0x2a(%rbp)
+  b6:	jmp    d3 <(anonymous namespace)::full_pass(char const*, unsigned long)+0x8d>
+  b8:	movzbl -0x2a(%rbp),%eax
+  bc:	xor    $0x1,%eax
+  bf:	test   %al,%al
+  c1:	je     d3 <(anonymous namespace)::full_pass(char const*, unsigned long)+0x8d>
+  c3:	movb   $0x1,-0x2a(%rbp)
+  c7:	mov    -0x20(%rbp),%rax
+  cb:	add    $0x1,%rax
+  cf:	mov    %rax,-0x20(%rbp)
+  d3:	addq   $0x1,-0x28(%rbp)
+  d8:	mov    -0x28(%rbp),%rax
+  dc:	cmp    -0x40(%rbp),%rax
+  e0:	jb     83 <(anonymous namespace)::full_pass(char const*, unsigned long)+0x3d>
+  e2:	mov    -0x20(%rbp),%rax
+  e6:	mov    -0x18(%rbp),%rdx
+  ea:	mov    -0x8(%rbp),%rcx
+  ee:	sub    %fs:0x28,%rcx
+  f7:	je     fe <(anonymous namespace)::full_pass(char const*, unsigned long)+0xb8>
+  f9:	call   fe <(anonymous namespace)::full_pass(char const*, unsigned long)+0xb8>
+  fe:	leave
+  ff:	ret
+
+0000000000000100 <as_text(Block const&)>:
+ 100:	endbr64
+ 104:	push   %rbp
+ 105:	mov    %rsp,%rbp
+ 108:	mov    %rdi,-0x8(%rbp)
+ 10c:	mov    -0x8(%rbp),%rcx
+ 110:	mov    %rcx,%rax
+ 113:	mov    $0x3ff,%edx
+ 118:	pop    %rbp
+ 119:	ret
+
+000000000000011a <scalar_val(unsigned int)>:
+ 11a:	endbr64
+ 11e:	push   %rbp
+ 11f:	mov    %rsp,%rbp
+ 122:	mov    %edi,-0x4(%rbp)
+ 125:	mov    -0x4(%rbp),%eax
+ 128:	add    $0x1,%eax
+ 12b:	pop    %rbp
+ 12c:	ret
+
+000000000000012d <scalar_ref(unsigned int const&)>:
+ 12d:	endbr64
+ 131:	push   %rbp
+ 132:	mov    %rsp,%rbp
+ 135:	mov    %rdi,-0x8(%rbp)
+ 139:	mov    -0x8(%rbp),%rax
+ 13d:	mov    (%rax),%eax
+ 13f:	add    $0x1,%eax
+ 142:	pop    %rbp
+ 143:	ret
+
+0000000000000144 <scalar_ptr(unsigned int const*)>:
+ 144:	endbr64
+ 148:	push   %rbp
+ 149:	mov    %rsp,%rbp
+ 14c:	mov    %rdi,-0x8(%rbp)
+ 150:	mov    -0x8(%rbp),%rax
+ 154:	mov    (%rax),%eax
+ 156:	add    $0x1,%eax
+ 159:	pop    %rbp
+ 15a:	ret
+
+000000000000015b <block_first_val(Block)>:
+ 15b:	endbr64
+ 15f:	push   %rbp
+ 160:	mov    %rsp,%rbp
+ 163:	call   168 <block_first_val(Block)+0xd>
+ 168:	mov    %rax,%rsi
+ 16b:	lea    0x10(%rbp),%rdi
+ 16f:	call   0 <(anonymous namespace)::first_byte(char const*, unsigned long)>
+ 174:	pop    %rbp
+ 175:	ret
+
+0000000000000176 <block_first_ref(Block const&)>:
+ 176:	endbr64
+ 17a:	push   %rbp
+ 17b:	mov    %rsp,%rbp
+ 17e:	sub    $0x10,%rsp
+ 182:	mov    %rdi,-0x8(%rbp)
+ 186:	call   18b <block_first_ref(Block const&)+0x15>
+ 18b:	mov    %rax,%rdx
+ 18e:	mov    -0x8(%rbp),%rax
+ 192:	mov    %rdx,%rsi
+ 195:	mov    %rax,%rdi
+ 198:	call   0 <(anonymous namespace)::first_byte(char const*, unsigned long)>
+ 19d:	leave
+ 19e:	ret
+
+000000000000019f <block_first_ptr(Block const*)>:
+ 19f:	endbr64
+ 1a3:	push   %rbp
+ 1a4:	mov    %rsp,%rbp
+ 1a7:	sub    $0x10,%rsp
+ 1ab:	mov    %rdi,-0x8(%rbp)
+ 1af:	call   1b4 <block_first_ptr(Block const*)+0x15>
+ 1b4:	mov    %rax,%rdx
+ 1b7:	mov    -0x8(%rbp),%rax
+ 1bb:	mov    %rdx,%rsi
+ 1be:	mov    %rax,%rdi
+ 1c1:	call   0 <(anonymous namespace)::first_byte(char const*, unsigned long)>
+ 1c6:	leave
+ 1c7:	ret
+
+00000000000001c8 <block_full_val(Block)>:
+ 1c8:	endbr64
+ 1cc:	push   %rbp
+ 1cd:	mov    %rsp,%rbp
+ 1d0:	call   1d5 <block_full_val(Block)+0xd>
+ 1d5:	mov    %rax,%rsi
+ 1d8:	lea    0x10(%rbp),%rdi
+ 1dc:	call   46 <(anonymous namespace)::full_pass(char const*, unsigned long)>
+ 1e1:	pop    %rbp
+ 1e2:	ret
+
+00000000000001e3 <block_full_ref(Block const&)>:
+ 1e3:	endbr64
+ 1e7:	push   %rbp
+ 1e8:	mov    %rsp,%rbp
+ 1eb:	sub    $0x10,%rsp
+ 1ef:	mov    %rdi,-0x8(%rbp)
+ 1f3:	call   1f8 <block_full_ref(Block const&)+0x15>
+ 1f8:	mov    %rax,%rdx
+ 1fb:	mov    -0x8(%rbp),%rax
+ 1ff:	mov    %rdx,%rsi
+ 202:	mov    %rax,%rdi
+ 205:	call   46 <(anonymous namespace)::full_pass(char const*, unsigned long)>
+ 20a:	leave
+ 20b:	ret
+
+000000000000020c <block_full_ptr(Block const*)>:
+ 20c:	endbr64
+ 210:	push   %rbp
+ 211:	mov    %rsp,%rbp
+ 214:	sub    $0x10,%rsp
+ 218:	mov    %rdi,-0x8(%rbp)
+ 21c:	call   221 <block_full_ptr(Block const*)+0x15>
+ 221:	mov    %rax,%rdx
+ 224:	mov    -0x8(%rbp),%rax
+ 228:	mov    %rdx,%rsi
+ 22b:	mov    %rax,%rdi
+ 22e:	call   46 <(anonymous namespace)::full_pass(char const*, unsigned long)>
+ 233:	leave
+ 234:	ret
+
+0000000000000235 <text_first_val(Text)>:
+ 235:	endbr64
+ 239:	push   %rbp
+ 23a:	mov    %rsp,%rbp
+ 23d:	sub    $0x10,%rsp
+ 241:	mov    %rdi,%rax
+ 244:	mov    %rsi,%rcx
+ 247:	mov    %rcx,%rdx
+ 24a:	mov    %rax,-0x10(%rbp)
+ 24e:	mov    %rdx,-0x8(%rbp)
+ 252:	mov    -0x8(%rbp),%rdx
+ 256:	mov    -0x10(%rbp),%rax
+ 25a:	mov    %rdx,%rsi
+ 25d:	mov    %rax,%rdi
+ 260:	call   0 <(anonymous namespace)::first_byte(char const*, unsigned long)>
+ 265:	leave
+ 266:	ret
+
+0000000000000267 <text_first_ref(Text const&)>:
+ 267:	endbr64
+ 26b:	push   %rbp
+ 26c:	mov    %rsp,%rbp
+ 26f:	sub    $0x8,%rsp
+ 273:	mov    %rdi,-0x8(%rbp)
+ 277:	mov    -0x8(%rbp),%rax
+ 27b:	mov    0x8(%rax),%rdx
+ 27f:	mov    -0x8(%rbp),%rax
+ 283:	mov    (%rax),%rax
+ 286:	mov    %rdx,%rsi
+ 289:	mov    %rax,%rdi
+ 28c:	call   0 <(anonymous namespace)::first_byte(char const*, unsigned long)>
+ 291:	leave
+ 292:	ret
+
+0000000000000293 <text_first_ptr(Text const*)>:
+ 293:	endbr64
+ 297:	push   %rbp
+ 298:	mov    %rsp,%rbp
+ 29b:	sub    $0x8,%rsp
+ 29f:	mov    %rdi,-0x8(%rbp)
+ 2a3:	mov    -0x8(%rbp),%rax
+ 2a7:	mov    0x8(%rax),%rdx
+ 2ab:	mov    -0x8(%rbp),%rax
+ 2af:	mov    (%rax),%rax
+ 2b2:	mov    %rdx,%rsi
+ 2b5:	mov    %rax,%rdi
+ 2b8:	call   0 <(anonymous namespace)::first_byte(char const*, unsigned long)>
+ 2bd:	leave
+ 2be:	ret
+
+00000000000002bf <text_full_val(Text)>:
+ 2bf:	endbr64
+ 2c3:	push   %rbp
+ 2c4:	mov    %rsp,%rbp
+ 2c7:	sub    $0x10,%rsp
+ 2cb:	mov    %rdi,%rax
+ 2ce:	mov    %rsi,%rcx
+ 2d1:	mov    %rcx,%rdx
+ 2d4:	mov    %rax,-0x10(%rbp)
+ 2d8:	mov    %rdx,-0x8(%rbp)
+ 2dc:	mov    -0x8(%rbp),%rdx
+ 2e0:	mov    -0x10(%rbp),%rax
+ 2e4:	mov    %rdx,%rsi
+ 2e7:	mov    %rax,%rdi
+ 2ea:	call   46 <(anonymous namespace)::full_pass(char const*, unsigned long)>
+ 2ef:	leave
+ 2f0:	ret
+
+00000000000002f1 <text_full_ref(Text const&)>:
+ 2f1:	endbr64
+ 2f5:	push   %rbp
+ 2f6:	mov    %rsp,%rbp
+ 2f9:	sub    $0x10,%rsp
+ 2fd:	mov    %rdi,-0x8(%rbp)
+ 301:	mov    -0x8(%rbp),%rax
+ 305:	mov    0x8(%rax),%rdx
+ 309:	mov    -0x8(%rbp),%rax
+ 30d:	mov    (%rax),%rax
+ 310:	mov    %rdx,%rsi
+ 313:	mov    %rax,%rdi
+ 316:	call   46 <(anonymous namespace)::full_pass(char const*, unsigned long)>
+ 31b:	leave
+ 31c:	ret
+
+000000000000031d <text_full_ptr(Text const*)>:
+ 31d:	endbr64
+ 321:	push   %rbp
+ 322:	mov    %rsp,%rbp
+ 325:	sub    $0x10,%rsp
+ 329:	mov    %rdi,-0x8(%rbp)
+ 32d:	mov    -0x8(%rbp),%rax
+ 331:	mov    0x8(%rax),%rdx
+ 335:	mov    -0x8(%rbp),%rax
+ 339:	mov    (%rax),%rax
+ 33c:	mov    %rdx,%rsi
+ 33f:	mov    %rax,%rdi
+ 342:	call   46 <(anonymous namespace)::full_pass(char const*, unsigned long)>
+ 347:	leave
+ 348:	ret
+
+0000000000000349 <clone_text(Text)>:
+ 349:	endbr64
+ 34d:	push   %rbp
+ 34e:	mov    %rsp,%rbp
+ 351:	sub    $0x20,%rsp
+ 355:	mov    %rdi,%rax
+ 358:	mov    %rsi,%rcx
+ 35b:	mov    %rcx,%rdx
+ 35e:	mov    %rax,-0x20(%rbp)
+ 362:	mov    %rdx,-0x18(%rbp)
+ 366:	mov    -0x18(%rbp),%rax
+ 36a:	add    $0x1,%rax
+ 36e:	mov    %rax,%rdi
+ 371:	call   376 <clone_text(Text)+0x2d>
+ 376:	mov    %rax,-0x8(%rbp)
+ 37a:	mov    -0x18(%rbp),%rax
+ 37e:	test   %rax,%rax
+ 381:	je     39a <clone_text(Text)+0x51>
+ 383:	mov    -0x18(%rbp),%rdx
+ 387:	mov    -0x20(%rbp),%rcx
+ 38b:	mov    -0x8(%rbp),%rax
+ 38f:	mov    %rcx,%rsi
+ 392:	mov    %rax,%rdi
+ 395:	call   39a <clone_text(Text)+0x51>
+ 39a:	mov    -0x18(%rbp),%rdx
+ 39e:	mov    -0x8(%rbp),%rax
+ 3a2:	add    %rdx,%rax
+ 3a5:	movb   $0x0,(%rax)
+ 3a8:	mov    -0x8(%rbp),%rax
+ 3ac:	leave
+ 3ad:	ret
+
+Disassembly of section .text._Z12block_lengthv:
+
+0000000000000000 <block_length()>:
+   0:	endbr64
+   4:	push   %rbp
+   5:	mov    %rsp,%rbp
+   8:	mov    $0x3ff,%eax
+   d:	pop    %rbp
+   e:	ret

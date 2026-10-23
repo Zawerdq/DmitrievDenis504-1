@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Полный воспроизводимый прогон: сборка, проверки, опыты A и B, графики.
-# Использование: ./run_experiments.sh [доп. опции для research, например --seed 1 --trials 9]
+# Использование: ./run_experiments.sh [доп. опции research; по умолчанию --trials 9 --target-ms 80]
 set -euo pipefail
+if [ $# -eq 0 ]; then set -- --trials 9 --target-ms 80; fi
 cd "$(dirname "$0")"
 
 CXX=${CXX:-g++}
