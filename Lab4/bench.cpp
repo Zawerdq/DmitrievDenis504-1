@@ -15,8 +15,11 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
+
+#include <sys/resource.h>
 
 #include "subvector.h"
 
@@ -27,33 +30,59 @@ double get_time() {
                std::chrono::steady_clock::now().time_since_epoch()).count() / 1e6;
 }
 
+// Число «мягких» page fault'ов процесса (первое касание страницы, выданной ядром).
+// Читается до и после замеряемого участка, но вне интервала get_time().
+long minor_faults() {
+    rusage r{};
+    getrusage(RUSAGE_SELF, &r);
+    return r.ru_minflt;
+}
+
 double g_cap_seconds = 20.0;
 volatile unsigned long long g_sink = 0;  // используем результат заполнения, чтобы его нельзя было выбросить
 
 struct Run {
     double seconds;
     unsigned long long reallocations, moved, peak_elements, final_capacity;
+    long page_faults = 0;
 };
 
 // Заполнение subvector n элементами с данной стратегией.
-Run fill_subvector(Growth g, unsigned int n) {
+// flatten: всё, что вызывается внутри (push_back, resize), встраивается — так же, как в fill_std ниже.
+// Без этого g++ встраивал push_back у subvector, но НЕ у std::vector (там оставался вызов emplace_back на
+// каждый элемент), и сравнение показывало разницу кодогенерации, а не стратегий роста.
+__attribute__((flatten)) Run fill_subvector(Growth g, unsigned int n) {
+    long f0 = minor_faults();
     double t0 = get_time();
     subvector<int> v(g);
     for (unsigned int i = 0; i < n; ++i)
         if (!v.push_back(static_cast<int>(i))) { std::cerr << "out of memory\n"; std::exit(3); }
     double t1 = get_time();
+    long f1 = minor_faults();
     g_sink = g_sink + static_cast<unsigned long long>(v[n / 2]) + v.get_size();
-    return {t1 - t0, v.stats().reallocations, v.stats().moved_elements, v.stats().peak_elements, v.get_capacity()};
+    return {t1 - t0, v.stats().reallocations, v.stats().moved_elements, v.stats().peak_elements, v.get_capacity(),
+            f1 - f0};
 }
 
-// То же для std::vector. Перевыделения считаем по изменению capacity.
-Run fill_std(unsigned int n, bool reserve) {
+// Замеряемая часть для std::vector (flatten — см. комментарий к fill_subvector).
+__attribute__((flatten)) double time_std(unsigned int n, bool reserve, std::size_t& cap, long& faults) {
+    long f0 = minor_faults();
     double t0 = get_time();
     std::vector<int> v;
     if (reserve) v.reserve(n);
     for (unsigned int i = 0; i < n; ++i) v.push_back(static_cast<int>(i));
     double t1 = get_time();
+    faults = minor_faults() - f0;
     g_sink = g_sink + static_cast<unsigned long long>(v[n / 2]) + v.size();
+    cap = v.capacity();
+    return t1 - t0;
+}
+
+// То же для std::vector. Перевыделения считаем по изменению capacity.
+Run fill_std(unsigned int n, bool reserve) {
+    std::size_t final_cap = 0;
+    long faults = 0;
+    double seconds = time_std(n, reserve, final_cap, faults);
     // Отдельный (не замеряемый) проход для статистики перевыделений.
     std::vector<int> w;
     if (reserve) w.reserve(n);
@@ -69,7 +98,7 @@ Run fill_std(unsigned int n, bool reserve) {
             cap = w.capacity();
         }
     }
-    return {t1 - t0, re, moved, peak, static_cast<unsigned long long>(v.capacity())};
+    return {seconds, re, moved, peak, static_cast<unsigned long long>(final_cap), faults};
 }
 
 struct Strategy {
@@ -91,43 +120,69 @@ int trials_for(double predicted) {
     return 7;
 }
 
-// Измеряет стратегию для набора n; пропускает n, для которых прогноз > cap.
-void sweep(std::ofstream& f, const std::string& series, const std::string& param, const Strategy& s,
-           const std::vector<unsigned int>& ns) {
+// Состояние развёртки одной стратегии: по последней измеренной точке прогнозируем следующую.
+struct SweepState {
     double last_t = 0;
     unsigned int last_n = 0;
-    for (unsigned int n : ns) {
-        double predicted = 0;
-        if (last_n) {
-            double r = double(n) / last_n;
-            predicted = last_t * (s.quadratic ? r * r : r);
-        }
-        if (predicted > g_cap_seconds) {
-            f << series << ',' << s.name << ',' << param << ',' << n << ",0,,,,,,skipped_predicted_" << predicted
-              << "s\n";
-            std::cerr << "  " << s.name << " n=" << n << " skipped (predicted " << predicted << " s)\n";
-            continue;
-        }
-        s.fill(std::min(n, 100000u));  // короткий прогрев распределителя памяти и кода
-        int T = trials_for(predicted);
-        std::vector<double> ts;
-        for (int t = 1; t <= T; ++t) {
-            Run r = s.fill(n);
-            ts.push_back(r.seconds);
-            f << series << ',' << s.name << ',' << param << ',' << n << ',' << t << ',' << r.seconds << ','
-              << r.reallocations << ',' << r.moved << ',' << r.peak_elements << ',' << r.final_capacity << ",ok\n";
-        }
-        last_t = median(ts);
-        last_n = n;
-        std::cerr << "  " << s.name << " n=" << n << " median " << last_t << " s (" << T << " trials)\n";
-        f.flush();
+};
+
+// Одна точка (стратегия, n): прогрев + несколько замеров; пропуск, если прогноз > cap.
+void measure_point(std::ofstream& f, const std::string& series, const std::string& param, const Strategy& s,
+                   unsigned int n, SweepState& st) {
+    double predicted = 0;
+    if (st.last_n) {
+        double r = double(n) / st.last_n;
+        predicted = st.last_t * (s.quadratic ? r * r : r);
     }
+    if (predicted > g_cap_seconds) {
+        f << series << ',' << s.name << ',' << param << ',' << n << ",0,,,,,,,skipped_predicted_" << predicted
+          << "s\n";
+        std::cerr << "  " << s.name << " n=" << n << " skipped (predicted " << predicted << " s)\n";
+        return;
+    }
+    s.fill(std::min(n, 100000u));  // короткий прогрев кода
+    int T = trials_for(predicted);
+    std::vector<double> ts;
+    for (int t = 1; t <= T; ++t) {
+        Run r = s.fill(n);
+        ts.push_back(r.seconds);
+        f << series << ',' << s.name << ',' << param << ',' << n << ',' << t << ',' << r.seconds << ','
+          << r.reallocations << ',' << r.moved << ',' << r.peak_elements << ',' << r.final_capacity << ','
+          << r.page_faults << ",ok\n";
+    }
+    st.last_t = median(ts);
+    st.last_n = n;
+    std::cerr << "  " << s.name << " n=" << n << " median " << st.last_t << " s (" << T << " trials)\n";
+    f.flush();
+}
+
+// Все стратегии на всех n. Стратегии перемешиваются на каждом n (фиксированный seed), чтобы ни одна
+// систематически не шла первой: время зависит от состояния распределителя памяти, оставленного
+// предыдущими замерами (см. отчёт, раздел про page faults).
+void sweep_interleaved(std::ofstream& f, const std::string& series, const std::vector<Strategy>& ss,
+                       const std::vector<std::string>& params, const std::vector<unsigned int>& ns) {
+    std::vector<SweepState> states(ss.size());
+    std::vector<std::size_t> order(ss.size());
+    for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+    std::mt19937 rng(20261023u);
+    for (unsigned int n : ns) {
+        std::shuffle(order.begin(), order.end(), rng);
+        for (std::size_t i : order) measure_point(f, series, params[i], ss[i], n, states[i]);
+    }
+}
+
+// Прогрев распределителя: выделить, заполнить и освободить блок чуть меньше 32 МБ.
+// После этого glibc поднимает порог mmap до размера этого блока, и все стратегии стартуют
+// в одинаковом состоянии кучи (иначе первая измеряемая стратегия платит лишние page faults).
+void heap_warmup() {
+    std::vector<char> w(30u << 20, 1);
+    g_sink = g_sink + static_cast<unsigned char>(w[12345]);
 }
 
 std::ofstream open_runs(const std::string& path) {
     std::ofstream f(path);
     f << std::setprecision(17);
-    f << "series,strategy,param,n,trial,seconds,reallocations,moved_elements,peak_elements,final_capacity,status\n";
+    f << "series,strategy,param,n,trial,seconds,reallocations,moved_elements,peak_elements,final_capacity,page_faults,status\n";
     return f;
 }
 
@@ -189,6 +244,8 @@ int main(int argc, char** argv) {
     for (int i = 3; i + 1 < argc; ++i)
         if (std::string(argv[i]) == "--cap") g_cap_seconds = std::stod(argv[++i]);
 
+    heap_warmup();
+
     auto sub = [](const std::string& name, Growth g) {
         return Strategy{name, [g](unsigned int n) { return fill_subvector(g, n); }, g.kind == Growth::Add};
     };
@@ -212,7 +269,7 @@ int main(int argc, char** argv) {
             sub("+100", Growth::add(100)),
             sub("+10", Growth::add(10)),
         };
-        for (auto& s : ss) sweep(f, "strategies", "", s, ns);
+        sweep_interleaved(f, "strategies", ss, std::vector<std::string>(ss.size(), ""), ns);
     }
 
     if (mode == "factor" || mode == "all") {
@@ -222,11 +279,15 @@ int main(int argc, char** argv) {
         // перевыделения, поэтому для каждого множителя берём несколько n и затем усредняем нс/элемент.
         const std::vector<unsigned int> ns = {2000000, 4000000, 6000000, 8000000, 10000000};
         std::vector<double> fs = {1.02, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 1.618, 1.75, 2.0, 2.5, 3.0, 4.0, 6.0, 8.0, 16.0};
+        std::vector<Strategy> ss;
+        std::vector<std::string> params;
         for (double k : fs) {
             char buf[32];
             std::snprintf(buf, sizeof buf, "%g", k);
-            sweep(f, "factor", buf, sub("x" + std::string(buf), Growth::mul(k)), ns);
+            ss.push_back(sub("x" + std::string(buf), Growth::mul(k)));
+            params.push_back(buf);
         }
+        sweep_interleaved(f, "factor", ss, params, ns);
     }
 
     if (mode == "step" || mode == "all") {
@@ -242,7 +303,7 @@ int main(int argc, char** argv) {
                 double predicted = last_step ? last_t * double(last_step) / st : 0;
                 std::string param = std::to_string(st);
                 if (predicted > g_cap_seconds) {
-                    f << "step_n" << n << ",+" << st << ',' << param << ',' << n << ",0,,,,,,skipped_predicted_"
+                    f << "step_n" << n << ",+" << st << ',' << param << ',' << n << ",0,,,,,,,skipped_predicted_"
                       << predicted << "s\n";
                     std::cerr << "  +" << st << " n=" << n << " skipped (predicted " << predicted << " s)\n";
                     continue;
@@ -256,7 +317,7 @@ int main(int argc, char** argv) {
                     ts.push_back(r.seconds);
                     f << "step_n" << n << ',' << s.name << ',' << param << ',' << n << ',' << t << ',' << r.seconds
                       << ',' << r.reallocations << ',' << r.moved << ',' << r.peak_elements << ','
-                      << r.final_capacity << ",ok\n";
+                      << r.final_capacity << ',' << r.page_faults << ",ok\n";
                 }
                 double m = median(ts);
                 // прогноз используем только когда время уже определяется копированием
