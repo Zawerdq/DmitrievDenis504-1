@@ -38,6 +38,7 @@ struct Growth {
 struct SubvectorStats {
     unsigned long long reallocations = 0;  // сколько раз выделялся новый буфер
     unsigned long long moved_elements = 0; // сколько элементов перенесено при перевыделениях
+    unsigned long long peak_elements = 0;  // максимум одновременно выделенных ячеек (старый + новый буфер)
 };
 
 template <typename T>
@@ -98,6 +99,8 @@ public:
             nd = new (std::nothrow) T[new_capacity];
             if (!nd) return false;
         }
+        unsigned long long both = static_cast<unsigned long long>(capacity) + new_capacity;
+        if (both > stats_.peak_elements) stats_.peak_elements = both;  // в момент копирования живы оба буфера
         unsigned int keep = std::min(size, new_capacity);
         for (unsigned int i = 0; i < keep; ++i) nd[i] = std::move(data[i]);
         delete[] data;
