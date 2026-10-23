@@ -15,6 +15,8 @@
 | `plot.py` | сводные таблицы `data/summary_*.csv` и графики `plots/*.png` |
 | `asm_check.sh` | дополнительная проверка по ассемблеру (что реально копируется при передаче по значению) → `asm/` |
 | `tables.py` | markdown-таблицы для отчёта из сводных CSV |
+| `control_branches.cpp` | контрольный опыт: цена неверно предсказанных переходов в полном проходе → `data/control_branches.txt` |
+| `control_ref_ptr.cpp`, `run_control_ref_ptr.sh` | контрольный опыт: ссылка/указатель и ошибка JCC процессора → `data/control_ref_ptr.txt` |
 | `data/` | исходные CSV измерений и счётчиков, сводные таблицы |
 | `plots/` | графики |
 
@@ -52,13 +54,25 @@ struct Block { char data[BLOCK_SIZE]; };
 
 ```bash
 g++ -std=c++17 -O0 -DBLOCK_SIZE=1024 tests.cpp text.cpp inputs.cpp -o tests && ./tests
-g++ -std=c++17 -O0 -DBLOCK_SIZE=1024 main.cpp text.cpp inputs.cpp -o research_debug
-g++ -std=c++17 -O2 -DBLOCK_SIZE=1024 main.cpp text.cpp inputs.cpp -o research_opt
+J=-Wa,-mbranches-within-32B-boundaries   # см. «Флаг сборки» ниже
+g++ -std=c++17 -O0 $J -DBLOCK_SIZE=1024 main.cpp text.cpp inputs.cpp -o research_debug
+g++ -std=c++17 -O2 $J -DBLOCK_SIZE=1024 main.cpp text.cpp inputs.cpp -o research_opt
 ./research_debug A O0 data --scalar
 ./research_opt   A O2 data --scalar
 ./research_opt   B O2 data
 python3 plot.py
 ```
+
+### Флаг сборки `-Wa,-mbranches-within-32B-boundaries`
+
+Процессор, на котором получены данные (Intel, модель 85 — Skylake-SP / Cascade Lake), подвержен ошибке JCC:
+цикл, условный переход которого касается 32-байтной границы, исполняется заметно медленнее. Поэтому скорость
+одного и того же машинного кода зависит от того, куда он случайно лёг в памяти. В контрольном опыте
+(`./run_control_ref_ptr.sh`) `text_full_ref` и `text_full_ptr` с идентичным кодом в обычной сборке различались
+в 1.7–2.4 раза, а с этим флагом — не больше чем на 2 %. Флаг передаётся ассемблеру, на семантику программы
+не влияет и ничего не оптимизирует: ассемблер лишь вставляет выравнивающие префиксы и `nop`. Без него
+сравнение способов передачи на такой машине измеряет расположение кода, а не способ передачи. На процессорах
+без этой ошибки (AMD, Intel начиная с Ice Lake) флаг безвреден.
 
 Параметры `research`:
 
@@ -97,9 +111,9 @@ python3 plot.py
 | | |
 |---|---|
 | ОС | Linux 6.18 x86_64 (Ubuntu 24.04, виртуальная машина) |
-| Процессор | Intel Xeon @ 2.80 GHz, 2 vCPU |
+| Процессор | Intel Xeon @ 2.80 GHz (family 6, model 85), 2 vCPU |
 | Компилятор | g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0 |
-| Флаги | `-std=c++17 -O0` и `-std=c++17 -O2`, без `-flto` |
+| Флаги | `-std=c++17 -O0` и `-std=c++17 -O2`, оба с `-Wa,-mbranches-within-32B-boundaries`, без `-flto` |
 | Python | 3, pandas, matplotlib |
 
 На другой машине числа будут другими: перезапустите `./run_experiments.sh` и обновите таблицы в отчёте.

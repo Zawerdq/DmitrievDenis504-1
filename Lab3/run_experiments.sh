@@ -6,7 +6,10 @@ if [ $# -eq 0 ]; then set -- --trials 9 --target-ms 80; fi
 cd "$(dirname "$0")"
 
 CXX=${CXX:-g++}
-STD="-std=c++17 -Wall -Wextra"
+# -mbranches-within-32B-boundaries: ассемблер не даёт переходам касаться 32-байтных границ.
+# Без этого на процессорах Intel с ошибкой JCC (Skylake…Cascade Lake) скорость цикла зависит от того,
+# куда он случайно лёг в памяти: одинаковые функции различались в 1.7–2.4 раза (control_ref_ptr.cpp).
+STD="-std=c++17 -Wall -Wextra -Wa,-mbranches-within-32B-boundaries"
 SIZES="16 1024 16384"
 mkdir -p build data plots
 
