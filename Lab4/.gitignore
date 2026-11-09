@@ -1,5 +1,0 @@
-bench
-tests
-build/
-*.o
-__pycache__/
