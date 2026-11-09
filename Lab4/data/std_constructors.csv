@@ -1,0 +1,12 @@
+case,size,capacity
+vector<int> a;,0,0
+vector<int> b(10);,10,10
+vector<int> c(10, 7);,10,10
+vector<int> d = {1, 2, 3};,3,3
+b.push_back(1) при size == capacity == 10,11,20
+vector<int> e(b); (копия b),11,11
+a.reserve(100);,0,100
+a.resize(5);,5,100
+b.pop_back();,10,20
+b.clear();,0,20
+b.shrink_to_fit(); после clear,0,0

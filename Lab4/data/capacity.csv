@@ -1,0 +1,95 @@
+container,size,capacity
+std::vector,0,0
+std::vector,1,1
+std::vector,2,2
+std::vector,3,4
+std::vector,5,8
+std::vector,9,16
+std::vector,17,32
+std::vector,33,64
+std::vector,65,128
+std::vector,129,256
+std::vector,257,512
+std::vector,513,1024
+std::vector,1025,2048
+std::vector,2049,4096
+std::vector,4097,8192
+std::vector,8193,16384
+std::vector,16385,32768
+std::vector,32769,65536
+std::vector,65537,131072
+std::vector,131073,262144
+std::vector,262145,524288
+std::vector,524289,1048576
+std::vector,1048577,2097152
+std::vector,2097153,4194304
+std::vector,4194305,8388608
+std::vector,8388609,16777216
+subvector x2,0,0
+subvector x2,1,1
+subvector x2,2,2
+subvector x2,3,4
+subvector x2,5,8
+subvector x2,9,16
+subvector x2,17,32
+subvector x2,33,64
+subvector x2,65,128
+subvector x2,129,256
+subvector x2,257,512
+subvector x2,513,1024
+subvector x2,1025,2048
+subvector x2,2049,4096
+subvector x2,4097,8192
+subvector x2,8193,16384
+subvector x2,16385,32768
+subvector x2,32769,65536
+subvector x2,65537,131072
+subvector x2,131073,262144
+subvector x2,262145,524288
+subvector x2,524289,1048576
+subvector x2,1048577,2097152
+subvector x2,2097153,4194304
+subvector x2,4194305,8388608
+subvector x2,8388609,16777216
+subvector x1.5,0,0
+subvector x1.5,1,1
+subvector x1.5,2,2
+subvector x1.5,3,3
+subvector x1.5,4,4
+subvector x1.5,5,6
+subvector x1.5,7,9
+subvector x1.5,10,13
+subvector x1.5,14,19
+subvector x1.5,20,28
+subvector x1.5,29,42
+subvector x1.5,43,63
+subvector x1.5,64,94
+subvector x1.5,95,141
+subvector x1.5,142,211
+subvector x1.5,212,316
+subvector x1.5,317,474
+subvector x1.5,475,711
+subvector x1.5,712,1066
+subvector x1.5,1067,1599
+subvector x1.5,1600,2398
+subvector x1.5,2399,3597
+subvector x1.5,3598,5395
+subvector x1.5,5396,8092
+subvector x1.5,8093,12138
+subvector x1.5,12139,18207
+subvector x1.5,18208,27310
+subvector x1.5,27311,40965
+subvector x1.5,40966,61447
+subvector x1.5,61448,92170
+subvector x1.5,92171,138255
+subvector x1.5,138256,207382
+subvector x1.5,207383,311073
+subvector x1.5,311074,466609
+subvector x1.5,466610,699913
+subvector x1.5,699914,1049869
+subvector x1.5,1049870,1574803
+subvector x1.5,1574804,2362204
+subvector x1.5,2362205,3543306
+subvector x1.5,3543307,5314959
+subvector x1.5,5314960,7972438
+subvector x1.5,7972439,11958657
