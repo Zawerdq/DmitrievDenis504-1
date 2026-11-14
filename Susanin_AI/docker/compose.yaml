@@ -1,0 +1,29 @@
+# Запуск бортового ПО на Raspberry Pi. Из корня репозитория:
+#     docker compose -f docker/compose.yaml up -d --build
+# Автозапуск после включения Pi обеспечивает restart: unless-stopped
+# (служба docker должна быть включена: sudo systemctl enable docker).
+#
+# Автопилот по камере включается переменной окружения:
+#     SUSANIN_AUTOPILOT=true docker compose -f docker/compose.yaml up -d
+# либо строкой SUSANIN_AUTOPILOT=true в файле docker/.env
+services:
+  susanin:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: susanin-ros:latest
+    container_name: susanin
+    network_mode: host            # ESP32 (192.168.4.1) и страничка оператора (порт 8080)
+    restart: unless-stopped
+    volumes:
+      - /dev:/dev                 # камера может появиться позже запуска контейнера
+      # Параметры правятся на Pi без пересборки образа:
+      - ../ros2_ws/src/susanin_bringup/config/susanin.yaml:/config/susanin.yaml:ro
+      - ../recordings:/data/recordings
+    device_cgroup_rules:
+      - "c 81:* rmw"              # видеоустройства (/dev/video*)
+      - "c 188:* rmw"             # USB-UART (/dev/ttyUSB*) — на будущее
+    command: >
+      ros2 launch susanin_bringup robot.launch.py
+      params_file:=/config/susanin.yaml
+      autopilot:=${SUSANIN_AUTOPILOT:-false}

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<!-- Исходник обзорной PDF. Сборка (Windows):
+     scripts\build_overview_pdf.ps1   ->  docs/Susanin_AI_overview.pdf -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Сусанин ИИ — как устроен робот</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1c2428; font-size: 10.2pt; line-height: 1.38; }
+  .page { width: 210mm; height: 297mm; padding: 13mm 15mm 12mm; page-break-after: always; position: relative; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  .top { display: flex; justify-content: space-between; font-size: 8pt; letter-spacing: .06em; color: #0b6b5e; font-weight: 700; border-bottom: 2px solid #0b6b5e; padding-bottom: 4px; margin-bottom: 9px; }
+  .top span:last-child { color: #6b767c; font-weight: 400; letter-spacing: 0; }
+  h1 { font-size: 23pt; margin: 0 0 3px; line-height: 1.15; }
+  h2 { font-size: 12.5pt; color: #0b6b5e; margin: 12px 0 5px; }
+  p { margin: 0 0 6px; }
+  .lead { color: #4b575d; font-size: 10.8pt; margin-bottom: 8px; }
+  .foot { position: absolute; left: 15mm; right: 15mm; bottom: 7mm; display: flex; justify-content: space-between; font-size: 7.6pt; color: #7a858b; }
+  .note { background: #eaf4f1; border-radius: 6px; padding: 7px 10px; color: #0b5348; font-weight: 600; margin: 7px 0; }
+  .warn { background: #fff3e2; border-radius: 6px; padding: 7px 10px; color: #8a4b00; margin: 7px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.2pt; }
+  th { text-align: left; color: #4b575d; font-weight: 600; border-bottom: 1.5px solid #b9c4c8; padding: 3px 6px 3px 0; }
+  td { border-bottom: 1px solid #dfe5e7; padding: 3.5px 6px 3.5px 0; vertical-align: top; }
+  code, .mono { font-family: Consolas, "Courier New", monospace; font-size: 8.7pt; }
+  .cols { display: flex; gap: 12px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cards { display: flex; gap: 8px; }
+  .card { flex: 1; border: 1.3px solid #c9d3d6; border-radius: 8px; padding: 7px 9px; font-size: 9.2pt; }
+  .card b { display: block; font-size: 10.2pt; margin-bottom: 2px; }
+  .ok { color: #1b7a3d; font-weight: 700; } .part { color: #b06a00; font-weight: 700; } .no { color: #b3261e; font-weight: 700; }
+  /* трасса */
+  .track { display: flex; align-items: stretch; gap: 0; margin: 6px 0 2px; }
+  .seg { flex: 1; text-align: center; padding: 8px 2px 6px; font-size: 9pt; font-weight: 600; color: #fff; position: relative; }
+  .seg small { display: block; font-weight: 400; font-size: 7.6pt; opacity: .92; }
+  .man { background: #2f6fb3; } .auto { background: #23884e; } .btn { flex: 0 0 62px; background: #e9a100; color: #2a1d00; border-radius: 6px; margin: 0 3px; }
+  .seg:first-child { border-radius: 6px 0 0 6px; } .seg:last-child { border-radius: 0 6px 6px 0; }
+  .legend { display: flex; gap: 16px; font-size: 8.6pt; color: #4b575d; margin-bottom: 4px; }
+  .sw { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  /* конвейер */
+  .pipe { display: flex; flex-direction: column; align-items: stretch; }
+  .stage { border: 1.4px solid #0b6b5e; border-radius: 7px; padding: 5px 9px; background: #fff; }
+  .stage b { font-size: 10.2pt; } .stage .f { color: #5d6a70; font-size: 8.3pt; font-family: Consolas, monospace; }
+  .stage.hw { border-color: #7a858b; background: #f4f6f7; }
+  .flow { text-align: center; font-size: 8.5pt; color: #0b6b5e; padding: 1px 0; line-height: 1.25; }
+  .flow::before { content: "▼ "; }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+  .states { display: flex; align-items: center; flex-wrap: wrap; gap: 3px; margin: 5px 0; }
+  .st { border-radius: 6px; padding: 5px 7px; font-size: 8.8pt; font-weight: 600; color: #fff; text-align: center; }
+  .st small { display: block; font-weight: 400; font-size: 7.4pt; }
+  .arr { color: #6b767c; font-size: 11pt; }
+  img.frame { width: 100%; border-radius: 6px; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ===================== 1 ===================== -->
+<div class="page">
+  <div class="top"><span>СУСАНИН ИИ · BOTS 2026 · МФТИ</span><span>обзор проекта · 14 ноября 2026</span></div>
+  <h1>Как устроен робот «Сусанин ИИ»</h1>
+  <p class="lead">Гусеничный робот, который проходит полосу препятствий: сложные препятствия — под управлением оператора, участок после горки — сам, по картинке с камеры.</p>
+
+  <h2>Что робот делает на трассе</h2>
+  <div class="track">
+    <div class="seg man">Старт</div>
+    <div class="seg man">Яма<small>с маршмеллоу</small></div>
+    <div class="seg man">Горка</div>
+    <div class="seg btn">кнопка<br>AUTO</div>
+    <div class="seg auto">Полоса<small>с поворотами</small></div>
+    <div class="seg auto">Туннель<small>едет прямо</small></div>
+    <div class="seg auto">Шар<small>режет скальпель</small></div>
+    <div class="seg auto">Финиш<small>остановка</small></div>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:#2f6fb3"></span>оператор ведёт с телефона (веб-джойстик)</span>
+    <span><span class="sw" style="background:#23884e"></span>автопилот: робот едет сам</span>
+    <span><span class="sw" style="background:#e9a100"></span>оператор включает автопилот</span>
+  </div>
+  <p>Трасса — деревянная полоса на синем полу, без бортиков. Автопилот отличает дерево от пола по цвету и держит робота посередине полосы. В туннеле и перед шаром он не «думает», а едет прямо заданное время. Если робот потерял полосу или пропала картинка — он останавливается и ждёт оператора.</p>
+
+  <h2>Из чего состоит</h2>
+  <div class="cards">
+    <div class="card"><b>Шасси</b>Гусеничная платформа, два мотора 12 В, батарея из трёх аккумуляторов 18650.</div>
+    <div class="card"><b>ESP32 + драйвер</b>Микроконтроллер крутит моторы через драйвер TB6612FNG и раздаёт Wi-Fi-сеть <span class="mono">bot5</span>.</div>
+    <div class="card"><b>Raspberry Pi 4</b>Бортовой компьютер: ROS 2, обработка картинки, решение «куда ехать».</div>
+    <div class="card"><b>USB-камера</b>A4Tech PK-910H спереди. Единственный датчик: энкодеров и гироскопа нет.</div>
+  </div>
+
+  <h2>Главная идея в одном абзаце</h2>
+  <p>«Мозг» и «мышцы» разделены. Raspberry Pi смотрит в камеру и решает, с какой скоростью ехать и куда поворачивать. ESP32 ничего не решает — она получает по Wi-Fi готовые команды 20 раз в секунду и подаёт напряжение на моторы. Если команды перестали приходить, ESP32 сама останавливает моторы. Прошивка ESP32 взята из набора курса BOTS и не менялась: Raspberry Pi говорит с ней на том же языке, что и веб-джойстик с телефона.</p>
+
+  <h2>Состояние на 14 ноября 2026</h2>
+  <table>
+    <tr><th style="width:39%">Часть</th><th style="width:15%">Готовность</th><th>Чем подтверждено</th></tr>
+    <tr><td>Моторы, ESP32, веб-джойстик</td><td class="ok">работает</td><td>стенд: гусеницы крутятся с телефона</td></tr>
+    <tr><td>Управление с Raspberry Pi через ROS 2</td><td class="ok">работает</td><td>стенд без гусеничных ремней: вперёд, поворот, аварийный стоп</td></tr>
+    <tr><td>Автопилот по камере, режимы, страничка оператора</td><td class="part">написано</td><td>только симулятор и автотесты; настоящую трассу камера ещё не видела</td></tr>
+    <tr><td>Запуск на Raspberry Pi «от кнопки питания»</td><td class="part">написано</td><td>образ собран и проверен на ПК, на Pi не ставился</td></tr>
+    <tr><td>Прошивка с быстрым остановом при обрыве связи</td><td class="part">написано</td><td>не скомпилирована под ESP32 и не залита</td></tr>
+    <tr><td>Питание Pi на борту, гусеничные ремни, крепление камеры</td><td class="no">нет</td><td>Pi пока питается от розетки</td></tr>
+    <tr><td>Заезд по трассе</td><td class="no">нет</td><td>—</td></tr>
+  </table>
+  <div class="foot"><span>Сусанин ИИ · как устроен робот</span><span>1 / 4</span></div>
+</div>
+
+<!-- ===================== 2 ===================== -->
+<div class="page">
+  <div class="top"><span>СУСАНИН ИИ · ЧТО К ЧЕМУ ПОДКЛЮЧЕНО</span><span>железо и связь</span></div>
+  <h1 style="font-size:19pt">Что к чему подключено</h1>
+  <p class="lead">Сплошные линии — провода, пунктир — Wi-Fi. Оранжевым отмечено то, чего на роботе пока нет.</p>
+
+  <svg viewBox="0 0 760 452" width="90%" style="display:block;margin:0 auto 2px">
+    <defs>
+      <marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#1c2428"/></marker>
+      <marker id="g" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#0b6b5e"/></marker>
+    </defs>
+    <!-- питание -->
+    <rect x="10" y="32" width="150" height="62" rx="8" fill="#fde9e7" stroke="#b3261e" stroke-width="1.5"/>
+    <text x="85" y="58" text-anchor="middle" font-size="13" font-weight="700">Батарея 3×18650</text>
+    <text x="85" y="76" text-anchor="middle" font-size="11">9–12,6 В</text>
+    <rect x="190" y="46" width="84" height="34" rx="6" fill="#fff" stroke="#1c2428" stroke-width="1.3"/>
+    <text x="232" y="67" text-anchor="middle" font-size="11">выключатель</text>
+    <line x1="160" y1="63" x2="190" y2="63" stroke="#1c2428" stroke-width="2"/>
+    <line x1="274" y1="63" x2="338" y2="63" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <text x="306" y="55" text-anchor="middle" font-size="10" fill="#b3261e" font-weight="700">12 В</text>
+    <!-- драйвер -->
+    <rect x="340" y="22" width="160" height="84" rx="8" fill="#eef3fb" stroke="#2f6fb3" stroke-width="1.5"/>
+    <text x="420" y="50" text-anchor="middle" font-size="13" font-weight="700">Драйвер моторов</text>
+    <text x="420" y="67" text-anchor="middle" font-size="12" font-weight="700">TB6612FNG</text>
+    <text x="420" y="87" text-anchor="middle" font-size="10">до 1,2 А на мотор</text>
+    <!-- моторы -->
+    <rect x="580" y="18" width="170" height="38" rx="8" fill="#f4f6f7" stroke="#1c2428" stroke-width="1.3"/>
+    <text x="665" y="42" text-anchor="middle" font-size="12" font-weight="700">Мотор M1 (канал A)</text>
+    <rect x="580" y="72" width="170" height="38" rx="8" fill="#f4f6f7" stroke="#1c2428" stroke-width="1.3"/>
+    <text x="665" y="96" text-anchor="middle" font-size="12" font-weight="700">Мотор M2 (канал B)</text>
+    <line x1="500" y1="46" x2="578" y2="38" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="500" y1="82" x2="578" y2="90" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <!-- DC-DC -->
+    <line x1="306" y1="63" x2="306" y2="172" stroke="#1c2428" stroke-width="2"/>
+    <line x1="306" y1="172" x2="292" y2="172" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="170" y="148" width="120" height="50" rx="8" fill="#fff" stroke="#1c2428" stroke-width="1.3"/>
+    <text x="230" y="170" text-anchor="middle" font-size="12" font-weight="700">Преобразователь</text>
+    <text x="230" y="186" text-anchor="middle" font-size="11">12 В → 5 В</text>
+    <polyline points="230,198 230,226 338,226" fill="none" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <text x="272" y="220" text-anchor="middle" font-size="10" fill="#b3261e" font-weight="700">5 В</text>
+    <!-- ESP32 -->
+    <rect x="340" y="150" width="160" height="96" rx="8" fill="#eaf4f1" stroke="#0b6b5e" stroke-width="1.8"/>
+    <text x="420" y="174" text-anchor="middle" font-size="14" font-weight="700">ESP32</text>
+    <text x="420" y="192" text-anchor="middle" font-size="10.5">прошивка набора BOTS</text>
+    <text x="420" y="208" text-anchor="middle" font-size="10.5">раздаёт Wi-Fi «bot5»</text>
+    <text x="420" y="228" text-anchor="middle" font-size="11" font-weight="700" fill="#0b6b5e">192.168.4.1</text>
+    <line x1="420" y1="150" x2="420" y2="108" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <text x="436" y="126" font-size="10">7 проводов: направление,</text>
+    <text x="436" y="139" font-size="10">скорость (ШИМ), включение</text>
+    <!-- телефон -->
+    <rect x="580" y="170" width="170" height="74" rx="8" fill="#fff8e6" stroke="#e9a100" stroke-width="1.5"/>
+    <text x="665" y="196" text-anchor="middle" font-size="13" font-weight="700">Телефон оператора</text>
+    <text x="665" y="213" text-anchor="middle" font-size="10.5">две вкладки браузера:</text>
+    <text x="665" y="229" text-anchor="middle" font-size="10.5">джойстик и режимы</text>
+    <line x1="580" y1="196" x2="502" y2="196" stroke="#0b6b5e" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#g)"/>
+    <text x="541" y="188" text-anchor="middle" font-size="9.5" fill="#0b6b5e">джойстик</text>
+    <!-- Pi -->
+    <rect x="340" y="332" width="160" height="100" rx="8" fill="#eaf4f1" stroke="#0b6b5e" stroke-width="1.8"/>
+    <text x="420" y="356" text-anchor="middle" font-size="14" font-weight="700">Raspberry Pi 4</text>
+    <text x="420" y="374" text-anchor="middle" font-size="10.5">ROS 2 Jazzy в Docker</text>
+    <text x="420" y="390" text-anchor="middle" font-size="10.5">зрение, автопилот, управление</text>
+    <text x="420" y="412" text-anchor="middle" font-size="11" font-weight="700" fill="#0b6b5e">192.168.4.10</text>
+    <line x1="420" y1="330" x2="420" y2="248" stroke="#0b6b5e" stroke-width="2.2" stroke-dasharray="7 4" marker-end="url(#g)"/>
+    <text x="412" y="282" text-anchor="end" font-size="10.5" fill="#0b6b5e" font-weight="700">Wi-Fi «bot5»</text>
+    <text x="412" y="296" text-anchor="end" font-size="10" fill="#0b6b5e">команды моторам</text>
+    <text x="412" y="310" text-anchor="end" font-size="10" fill="#0b6b5e">20 раз в секунду</text>
+    <polyline points="640,244 640,300 502,352" fill="none" stroke="#0b6b5e" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#g)"/>
+    <text x="648" y="278" font-size="9.5" fill="#0b6b5e">страничка оператора</text>
+    <text x="648" y="291" font-size="9.5" fill="#0b6b5e">192.168.4.10:8080</text>
+    <!-- камера -->
+    <rect x="580" y="372" width="170" height="52" rx="8" fill="#f4f6f7" stroke="#1c2428" stroke-width="1.3"/>
+    <text x="665" y="394" text-anchor="middle" font-size="12" font-weight="700">USB-камера</text>
+    <text x="665" y="411" text-anchor="middle" font-size="10.5">A4Tech PK-910H</text>
+    <line x1="580" y1="398" x2="502" y2="398" stroke="#1c2428" stroke-width="2" marker-end="url(#a)"/>
+    <text x="541" y="390" text-anchor="middle" font-size="10">USB</text>
+    <!-- питание Pi -->
+    <rect x="10" y="350" width="238" height="68" rx="8" fill="#fff3e2" stroke="#d97706" stroke-width="1.6" stroke-dasharray="7 4"/>
+    <text x="129" y="373" text-anchor="middle" font-size="12" font-weight="700" fill="#8a4b00">Питание Pi: 5 В, до 3 А</text>
+    <text x="129" y="390" text-anchor="middle" font-size="10.5" fill="#8a4b00">сейчас — от розетки</text>
+    <text x="129" y="406" text-anchor="middle" font-size="10.5" fill="#8a4b00">нужно: павербанк или свой преобразователь</text>
+    <line x1="248" y1="384" x2="338" y2="384" stroke="#d97706" stroke-width="2" stroke-dasharray="7 4" marker-end="url(#a)"/>
+    <text x="293" y="376" text-anchor="middle" font-size="10" fill="#8a4b00">USB-C</text>
+  </svg>
+
+  <div class="cols">
+    <div>
+      <h2 style="margin-top:4px">Провода ESP32 → драйвер</h2>
+      <table>
+        <tr><th>Сигнал драйвера</th><th>Вывод ESP32</th><th>Зачем</th></tr>
+        <tr><td>AIN1 / AIN2</td><td>13 / 14</td><td>направление мотора M1</td></tr>
+        <tr><td>BIN1 / BIN2</td><td>12 / 27</td><td>направление мотора M2</td></tr>
+        <tr><td>PWMA / PWMB</td><td>26 / 25</td><td>скорость (ШИМ, <span style="white-space:nowrap">0–255</span>)</td></tr>
+        <tr><td>STBY</td><td>33</td><td>включение драйвера</td></tr>
+        <tr><td>светодиод</td><td>2</td><td>индикация</td></tr>
+      </table>
+    </div>
+    <div>
+      <h2 style="margin-top:4px">Сеть «bot5»</h2>
+      <table>
+        <tr><th>Устройство</th><th>Адрес</th><th>Что на нём</th></tr>
+        <tr><td>ESP32</td><td class="mono">192.168.4.1</td><td>веб-джойстик; приём команд (WebSocket <span class="mono">/ws</span>)</td></tr>
+        <tr><td>Raspberry Pi</td><td class="mono">192.168.4.10</td><td>страничка оператора, порт 8080</td></tr>
+        <tr><td>Телефон</td><td>выдаёт ESP32</td><td>браузер</td></tr>
+      </table>
+      <p style="font-size:8.8pt;color:#4b575d;margin-top:5px">Интернета в этой сети нет. Точка доступа ESP32 держит до 4 устройств.</p>
+    </div>
+  </div>
+  <div class="warn"><b>Слабые места железа.</b> Драйвер рассчитан на 1,2 А на мотор, а ток моторов под нагрузкой не измерен — на горке возможен перегрев. Провода между Raspberry Pi и ESP32 нет: если Wi-Fi пропадёт, текущая прошивка остановит моторы только через 3 секунды (подготовлена версия с 0,5 с).</div>
+  <h2 style="margin-top:8px">Порядок включения и заезда</h2>
+  <table>
+    <tr><th style="width:4%">№</th><th style="width:47%">Что делает оператор</th><th>Что происходит</th></tr>
+    <tr><td>1</td><td>Включает робота и Raspberry Pi</td><td>ESP32 поднимает сеть «bot5», Pi сама запускает программы (1–2 мин)</td></tr>
+    <tr><td>2</td><td>Телефон → «bot5», вкладки <span class="mono">192.168.4.1</span> и <span class="mono">192.168.4.10:8080</span></td><td>джойстик и режимы; должно быть «ESP32: есть связь»</td></tr>
+    <tr><td>3</td><td>Ведёт джойстиком через яму и горку</td><td>режим MANUAL: Pi в управление не вмешивается</td></tr>
+    <tr><td>4</td><td>Ставит робота на полосу, нажимает AUTO</td><td>автопилот ведёт до финиша и останавливается</td></tr>
+    <tr><td>5</td><td>Что-то не так — СТОП или MANUAL</td><td>робот стоит, управление снова у джойстика</td></tr>
+  </table>
+  <div class="foot"><span>Сусанин ИИ · как устроен робот</span><span>2 / 4</span></div>
+</div>
+
+<!-- ===================== 3 ===================== -->
+<div class="page">
+  <div class="top"><span>СУСАНИН ИИ · КАК КОМАНДА ДОХОДИТ ДО МОТОРОВ</span><span>программная часть</span></div>
+  <h1 style="font-size:19pt">Путь от картинки до моторов</h1>
+  <p class="lead">Каждый блок — отдельная программа; между блоками — что они передают друг другу.</p>
+  <div class="cols">
+    <div style="flex:1.25">
+      <div class="pipe">
+        <div class="stage hw"><b>Камера</b> — 30 кадров в секунду<div class="f">USB, /dev/video0</div></div>
+        <div class="flow">кадр 640×480</div>
+        <div class="stage"><b>Зрение</b> — где полоса? видно ли туннель, шар, финиш?<div class="f">susanin_autopilot/vision.py</div></div>
+        <div class="flow">смещение полосы от центра кадра: −1 … +1</div>
+        <div class="stage"><b>Автопилот</b> — на каком шаге трассы, куда рулить<div class="f">susanin_autopilot/autopilot.py · autopilot_node.py</div></div>
+        <div class="flow">/cmd_vel: скорость вперёд (м/с) и поворота (рад/с)</div>
+        <div class="stage"><b>Узел управления</b> — ограничения, плавный разгон, стоп<div class="f">susanin_control/track_controller.py · control_node.py</div></div>
+        <div class="flow">/susanin/track_cmd: [левая, правая] в долях мощности −1 … 1</div>
+        <div class="stage"><b>Мост к ESP32</b> — перевод на язык прошивки, контроль связи<div class="f">susanin_esp32_bridge/protocol.py · link.py · bridge_node.py</div></div>
+        <div class="flow">Wi-Fi, WebSocket: {"x": …, "y": …} 20 раз в секунду</div>
+        <div class="stage hw"><b>ESP32</b> — пересчёт в левый и правый мотор, останов при молчании<div class="f">firmware/ · функция driveMix()</div></div>
+        <div class="flow">ШИМ 0–255 и направление</div>
+        <div class="stage hw"><b>Драйвер TB6612FNG → моторы → гусеницы</b></div>
+      </div>
+      <p style="font-size:8.8pt;color:#4b575d;margin-top:6px">Зелёная рамка — программы на Raspberry Pi (ROS 2), серая — железо. Обратной связи от моторов нет: робот «знает», что едет правильно, только по картинке с камеры.</p>
+      <h2>Почему так, а не проще</h2>
+      <p style="font-size:9.4pt">Автопилот выдаёт скорость в метрах в секунду и не знает про моторы. Узел управления знает ширину колеи и пределы, но не знает про Wi-Fi. Мост знает формат прошивки, но не знает, откуда команда. Поэтому камеру, алгоритм или способ связи можно менять по отдельности.</p>
+    </div>
+    <div>
+      <h2 style="margin-top:0">Кто управляет: два режима</h2>
+      <table>
+        <tr><th>Режим</th><th>Кто ведёт</th><th>Мост</th></tr>
+        <tr><td><b>MANUAL</b></td><td>оператор, веб-джойстик ESP32</td><td>молчит, не мешает телефону</td></tr>
+        <tr><td><b>AUTO</b></td><td>автопилот на Raspberry Pi</td><td>передаёт команды</td></tr>
+      </table>
+      <p style="margin-top:5px">Режим переключается кнопками на страничке оператора (её отдаёт Raspberry Pi, программа <span class="mono">mode_node.py</span>). Там же кнопка СТОП, состояние связи и картинка с камеры с пометками алгоритма. После включения робот всегда в MANUAL.</p>
+
+      <h2>Что остановит робота</h2>
+      <table>
+        <tr><th>Что случилось</th><th>Кто останавливает</th><th>Время</th></tr>
+        <tr><td>нажали СТОП</td><td>управление и мост</td><td>сразу</td></tr>
+        <tr><td>не видно полосы</td><td>автопилот</td><td>0,6 с</td></tr>
+        <tr><td>нет кадров с камеры</td><td>автопилот</td><td>0,4 с</td></tr>
+        <tr><td>автопилот завис</td><td>узел управления</td><td>0,5 с</td></tr>
+        <tr><td>узел управления завис</td><td>мост</td><td>0,5 с</td></tr>
+        <tr><td>ESP32 не отвечает</td><td>мост (разрыв связи)</td><td>1,5 с</td></tr>
+        <tr><td>пропал Wi-Fi, упал мост</td><td>прошивка ESP32</td><td>3 с*</td></tr>
+      </table>
+      <p style="font-size:8.6pt;color:#4b575d;margin-top:4px">* с подготовленной прошивкой — 0,5 с. Каждый следующий уровень страхует предыдущий: робот остановится, даже если «выше» всё зависло.</p>
+
+    </div>
+  </div>
+  <h2 style="margin-top:10px">Один цикл на примере (повторяется 20 раз в секунду)</h2>
+  <table>
+    <tr><th style="width:17%">Кто</th><th style="width:31%">Что получил</th><th>Что выдал</th></tr>
+    <tr><td>Зрение</td><td>кадр: полоса уходит вправо</td><td>смещение <b>+0,3</b></td></tr>
+    <tr><td>Автопилот</td><td>смещение +0,3</td><td>вперёд <b>0,10 м/с</b>, поворот вправо <b>0,36 рад/с</b></td></tr>
+    <tr><td>Узел управления</td><td>0,10 м/с и −0,36 рад/с</td><td>левая гусеница <b>42 %</b> мощности, правая <b>25 %</b></td></tr>
+    <tr><td>Мост</td><td>[0,42; 0,25]</td><td><span class="mono">{"x":21,"y":85}</span> — «джойстик вперёд и чуть вправо»</td></tr>
+    <tr><td>ESP32</td><td><span class="mono">{"x":21,"y":85}</span></td><td>левый мотор ШИМ <b>106</b> из 255, правый <b>64</b> — робот забирает вправо</td></tr>
+  </table>
+  <p style="font-size:8.6pt;color:#4b575d;margin-top:4px">Числа посчитаны настоящим кодом с параметрами из <span class="mono">susanin.yaml</span>; сами параметры пока оценочные и калибруются на трассе.</p>
+  <div class="foot"><span>Сусанин ИИ · как устроен робот</span><span>3 / 4</span></div>
+</div>
+
+<!-- ===================== 4 ===================== -->
+<div class="page">
+  <div class="top"><span>СУСАНИН ИИ · АВТОПИЛОТ И КАРТА КОДА</span><span>что где лежит</span></div>
+  <h1 style="font-size:19pt">Автопилот и карта кода</h1>
+  <div class="cols" style="margin-top:6px">
+    <div style="flex:1.35">
+      <h2 style="margin-top:0">Шаги автопилота</h2>
+      <div class="states">
+        <div class="st" style="background:#23884e">по полосе<small>рулит по камере</small></div><span class="arr">→</span>
+        <div class="st" style="background:#3c4a52">туннель<small>прямо, вслепую</small></div><span class="arr">→</span>
+        <div class="st" style="background:#23884e">по полосе</div><span class="arr">→</span>
+        <div class="st" style="background:#a2378f">шар<small>прямо N секунд</small></div><span class="arr">→</span>
+        <div class="st" style="background:#23884e">по полосе</div><span class="arr">→</span>
+        <div class="st" style="background:#0b6b5e">финиш<small>стоп</small></div>
+      </div>
+      <p>Порядок препятствий известен заранее, поэтому на каждом шаге автопилот ждёт только одно следующее событие: сначала тёмный проём туннеля, потом пятно цвета шара, потом финиш (метка или конец полосы). Из любого шага он может уйти в состояние <b>«потерялся»</b> — стоит и ждёт, пока оператор заново нажмёт AUTO.</p>
+      <p><b>Как он рулит.</b> Нижняя часть кадра режется на шесть горизонтальных лент. В каждой ищется самый широкий кусок «не пола». Середины этих кусков показывают, куда уходит полоса. Полоса правее центра — поворот вправо, и тем сильнее, чем больше смещение; в повороте скорость снижается.</p>
+    </div>
+    <div>
+      <img class="frame" src="demo_frame.jpg" alt="">
+      <p style="font-size:8.3pt;color:#4b575d;margin-top:3px">Так алгоритм размечает кадр: линии — ленты, точки — середины полосы, стрелка — куда рулить. <b>Это кадр симулятора, а не реальной трассы.</b></p>
+    </div>
+  </div>
+
+  <h2>Где что в коде</h2>
+  <table>
+    <tr><th style="width:43%">Файл или папка</th><th>За что отвечает</th></tr>
+    <tr><td class="mono">ros2_ws/src/susanin_autopilot/vision.py</td><td>поиск полосы, туннеля, шара и финиша на кадре</td></tr>
+    <tr><td class="mono">…/susanin_autopilot/autopilot.py</td><td>шаги трассы и правила остановки</td></tr>
+    <tr><td class="mono">…/susanin_autopilot/mode_node.py</td><td>режимы MANUAL/AUTO, кнопка СТОП, страничка оператора</td></tr>
+    <tr><td class="mono">…/susanin_autopilot/sim.py</td><td>симулятор трассы для проверки без робота</td></tr>
+    <tr><td class="mono">ros2_ws/src/susanin_control/</td><td>скорость → мощность гусениц, ограничения, плавный разгон</td></tr>
+    <tr><td class="mono">ros2_ws/src/susanin_esp32_bridge/</td><td>связь с ESP32; <span class="mono">fake_esp32.py</span> — эмулятор прошивки для тестов</td></tr>
+    <tr><td class="mono">ros2_ws/src/susanin_bringup/config/susanin.yaml</td><td><b>все настройки робота в одном файле</b>: цвета, скорости, адреса</td></tr>
+    <tr><td class="mono">…/susanin_bringup/launch/robot.launch.py</td><td>запуск всех программ одной командой</td></tr>
+    <tr><td class="mono">firmware/</td><td>прошивка ESP32: исходная (на роботе) и с правками (не залита)</td></tr>
+    <tr><td class="mono">scripts/record_camera.py · vision_replay.py</td><td>снять запись с камеры; прогнать запись через алгоритм и посмотреть результат</td></tr>
+    <tr><td class="mono">docker/ · docs/DEPLOY_PI.md</td><td>установка на Raspberry Pi с автозапуском при включении</td></tr>
+    <tr><td class="mono">docs/</td><td>инструкции, список испытаний, известные проблемы</td></tr>
+  </table>
+
+  <div class="cols" style="margin-top:8px">
+    <div style="flex:1.35">
+      <h2 style="margin-top:0">Как запустить</h2>
+      <table>
+        <tr><td style="width:27%">на Raspberry Pi</td><td class="mono" style="white-space:nowrap;font-size:8pt">docker compose -f docker/compose.yaml up -d</td></tr>
+        <tr><td>оператор</td><td class="mono" style="white-space:nowrap;font-size:8pt">http://192.168.4.10:8080</td></tr>
+        <tr><td>без робота</td><td class="mono" style="white-space:nowrap;font-size:8pt">python scripts/vision_replay.py --demo</td></tr>
+      </table>
+    </div>
+    <div>
+      <h2 style="margin-top:0">Что осталось до заезда</h2>
+      <p style="font-size:9.3pt">1) бортовое питание Raspberry Pi и гусеничные ремни; 2) запись с трассы и настройка цветов по ней; 3) установка на Pi и проверка камеры; 4) прошивка с быстрым остановом; 5) заезды: подставка → прямая → поворот → туннель → шар.</p>
+    </div>
+  </div>
+  <div class="note">Проверено автотестами: 1794 теста и сквозной сценарий в ROS 2. Они подтверждают логику, но не заменяют заезд — на реальной трассе автопилот ещё не ездил.</div>
+  <div class="foot"><span>Сусанин ИИ · как устроен робот</span><span>4 / 4</span></div>
+</div>
+</body>
+</html>

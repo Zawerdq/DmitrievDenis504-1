@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>susanin_bringup</name>
+  <version>0.1.0</version>
+  <description>Запуск и конфигурация робота «Сусанин ИИ»: launch-файлы и единый YAML с параметрами.</description>
+  <maintainer email="todo@example.com">Susanin AI team</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>susanin_control</exec_depend>
+  <exec_depend>susanin_esp32_bridge</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-yaml</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

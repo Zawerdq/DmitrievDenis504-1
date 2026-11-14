@@ -1,0 +1,16 @@
+# локальные копии чужого репозитория и распакованные библиотеки (только для чтения)
+/upstream/
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# colcon
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+# локальные настройки предпросмотра Claude Code
+/.claude/
+# записи с камеры и результаты их прогона
+/recordings/
+docker/.env
