@@ -3,7 +3,9 @@
 Проект команды курса BOTS 2026 (МФТИ). Аппаратная основа — набор BOTS
 ([m112521/bots](https://github.com/m112521/bots/tree/esp32-tb6612), ветка `esp32-tb6612`):
 ESP32 + TB6612FNG + два мотора 12 В. Этот репозиторий добавляет бортовое управление
-на Raspberry Pi 4 под ROS 2. Прошивка ESP32 используется **без изменений**.
+на Raspberry Pi 4 под ROS 2. Узлы работают с прошивкой ESP32, которая уже стоит на роботе,
+**без её изменения**; вариант прошивки с более быстрым остановом при потере связи
+подготовлен отдельно и не прошит.
 
 Computer Vision разрабатывается отдельно и сюда не входит; как его подключить —
 [docs/INTERFACES.md](docs/INTERFACES.md).
@@ -33,7 +35,7 @@ Computer Vision разрабатывается отдельно и сюда не
 | [ros2_ws/src/susanin_esp32_bridge](ros2_ws/src/susanin_esp32_bridge) | мост к ESP32 и эмулятор прошивки |
 | [ros2_ws/src/susanin_bringup](ros2_ws/src/susanin_bringup) | launch и единственный YAML с параметрами |
 | [scripts/](scripts) | диагностика Raspberry Pi, проверка связи с ESP32, сквозная проверка ROS 2 |
-| [firmware/upstream](firmware/upstream) | исходник прошивки из набора BOTS (справочная копия, MIT) |
+| [firmware/](firmware/README.md) | исходник прошивки из набора BOTS (стоит на роботе) и подготовленный вариант с правками безопасности (не прошит) |
 
 ## Быстрый старт
 

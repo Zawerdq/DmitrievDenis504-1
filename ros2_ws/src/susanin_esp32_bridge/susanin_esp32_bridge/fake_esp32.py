@@ -1,11 +1,19 @@
-"""Эмулятор прошивки ESP32 (DiffrentialControl_invert.ino) для разработки без робота.
+"""Эмулятор прошивки ESP32 для разработки без робота.
 
 Повторяет поведение прошивки, существенное для моста:
 
 * WebSocket-сервер на пути /ws, текстовые JSON-сообщения;
 * микшер driveMix и флаги invert1/invert2;
-* таймаут команд (в прошивке 3000 мс): если джойстик «отклонён» и сообщений
-  нет дольше таймаута — моторы останавливаются.
+* таймаут команд: если джойстик «отклонён» и сообщений нет дольше таймаута —
+  моторы останавливаются.
+
+Два варианта прошивки (параметр ``firmware``):
+
+* ``upstream`` — исходная DiffrentialControl_invert.ino: таймаут 3000 мс, при
+  отключении клиента моторы НЕ останавливаются, таймаут перезапускает любой
+  текстовый кадр (даже не JSON);
+* ``susanin`` — firmware/susanin_esp32 с правками Ф1–Ф3: таймаут 500 мс, останов
+  при отключении клиента, таймаут перезапускает только корректный JSON.
 
 ЭТО НЕ ПРОВЕРКА РЕАЛЬНОГО РОБОТА: эмулятор не моделирует моторы, питание,
 нагрев драйвера и качество Wi-Fi.
@@ -30,13 +38,23 @@ from websockets.exceptions import ConnectionClosed
 
 from susanin_esp32_bridge.protocol import firmware_mix
 
-FIRMWARE_COMMAND_TIMEOUT = 3.0  # COMMAND_TIMEOUT = 3000 мс в прошивке
+FIRMWARE_COMMAND_TIMEOUT = 3.0  # COMMAND_TIMEOUT = 3000 мс в исходной прошивке
+SUSANIN_COMMAND_TIMEOUT = 0.5   # COMMAND_TIMEOUT = 500 мс после правки Ф1
+SUSANIN_MAX_MESSAGE = 128       # размер буфера message[] после правки Ф3
+FIRMWARES = ('upstream', 'susanin')
 
 
 class FakeEsp32:
 
     def __init__(self, host: str = '127.0.0.1', port: int = 0,
-                 command_timeout: float = FIRMWARE_COMMAND_TIMEOUT, verbose: bool = False):
+                 command_timeout: Optional[float] = None, verbose: bool = False,
+                 firmware: str = 'upstream'):
+        if firmware not in FIRMWARES:
+            raise ValueError(f'firmware должен быть одним из {FIRMWARES}')
+        self._firmware = firmware
+        if command_timeout is None:
+            command_timeout = (SUSANIN_COMMAND_TIMEOUT if firmware == 'susanin'
+                               else FIRMWARE_COMMAND_TIMEOUT)
         self._host = host
         self._requested_port = port
         self._command_timeout = command_timeout
@@ -160,8 +178,18 @@ class FakeEsp32:
             pass
         finally:
             self._clients.discard(ws)
+            if self._firmware == 'susanin':      # правка Ф2: останов при отключении
+                with self._lock:
+                    self._joy = (0, 0)
+                    self._set_motors(0, 0)
 
     def _on_text(self, text: str) -> None:
+        if self._firmware == 'upstream':
+            # Исходная прошивка перезапускает таймаут ДО разбора сообщения.
+            with self._lock:
+                self._last_command = time.monotonic()
+        elif not 0 < len(text.encode('utf-8')) < SUSANIN_MAX_MESSAGE:
+            return                               # правка Ф3: слишком длинное сообщение
         try:
             obj = json.loads(text)
         except ValueError:
@@ -205,10 +233,13 @@ def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description='Эмулятор прошивки ESP32 «Сусанин ИИ»')
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8765)
+    parser.add_argument('--firmware', choices=FIRMWARES, default='upstream',
+                        help='upstream — исходная прошивка BOTS; susanin — с правками Ф1–Ф3')
     args, _ = parser.parse_known_args(argv)
 
-    fake = FakeEsp32(args.host, args.port, verbose=True).start()
-    print(f'[fake-esp32] слушаю ws://{args.host}:{fake.port}/ws (Ctrl+C — выход)', flush=True)
+    fake = FakeEsp32(args.host, args.port, verbose=True, firmware=args.firmware).start()
+    print(f'[fake-esp32] прошивка {args.firmware}, слушаю ws://{args.host}:{fake.port}/ws '
+          '(Ctrl+C — выход)', flush=True)
     try:
         while True:
             time.sleep(1.0)
