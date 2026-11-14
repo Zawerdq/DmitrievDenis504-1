@@ -8,7 +8,9 @@
 * аварийный останов обнуляет команду немедленно;
 * связь проверяется ping/pong: если ESP32 молчит дольше ``pong_timeout``,
   соединение считается потерянным и переустанавливается;
-* при штатном завершении последним сообщением отправляется останов.
+* при штатном завершении последним сообщением отправляется останов;
+* в ручном режиме (``set_active(False)``) мост один раз шлёт останов и замолкает,
+  чтобы не перебивать веб-джойстик; связь при этом продолжает проверяться.
 
 Модуль не зависит от ROS и тестируется обычным pytest.
 """
@@ -76,6 +78,7 @@ class LinkStats:
     last_xy: Tuple[int, int] = (0, 0)
     command_stale: bool = True
     estop: bool = False
+    active: bool = True               # False — ручной режим, команды не отправляются
 
 
 LogFn = Callable[[str, str], None]
@@ -105,6 +108,8 @@ class Esp32Link:
         self._tracks = (0.0, 0.0)
         self._tracks_time: Optional[float] = None
         self._estop = False
+        self._active = True
+        self._release_pending = False
         self._led: Optional[bool] = None
         self._led_dirty = False
         self._stats = LinkStats()
@@ -139,6 +144,18 @@ class Esp32Link:
             if self._estop:
                 self._tracks = (0.0, 0.0)
                 self._tracks_time = None
+
+    def set_active(self, active: bool) -> None:
+        """True — передавать команды ROS; False — замолчать (управляет веб-джойстик)."""
+        with self._lock:
+            active = bool(active)
+            if self._active and not active:
+                self._release_pending = True      # перед молчанием остановить моторы
+            if active and not self._active:
+                self._tracks = (0.0, 0.0)         # старая команда не должна «выстрелить»
+                self._tracks_time = None
+            self._active = active
+            self._stats.active = active
 
     def set_led(self, on: bool) -> None:
         with self._lock:
@@ -222,11 +239,20 @@ class Esp32Link:
             now = self._clock()
 
             if now >= next_send:
-                x, y = self._current_xy(now)
-                transport.send_text(drive_message(x, y))
                 with self._lock:
-                    self._stats.tx_count += 1
-                    self._stats.last_xy = (x, y)
+                    active = self._active
+                    release = self._release_pending
+                    self._release_pending = False
+                x, y = 0, 0
+                if active:
+                    x, y = self._current_xy(now)
+                    transport.send_text(drive_message(x, y))
+                elif release:
+                    transport.send_text(STOP_MESSAGE)
+                with self._lock:
+                    if active or release:
+                        self._stats.tx_count += 1
+                        self._stats.last_xy = (x, y)
                     led = self._led if self._led_dirty else None
                     self._led_dirty = False
                 if led is not None:

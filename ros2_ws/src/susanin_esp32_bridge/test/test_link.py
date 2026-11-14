@@ -284,3 +284,55 @@ def test_websocket_unreachable_host_does_not_crash():
         assert not link.connected
     finally:
         link.stop()
+
+
+# ---- ручной режим: мост молчит ------------------------------------------------
+
+def test_inactive_link_sends_one_stop_and_goes_silent(stub):
+    hub, link = stub
+    link.set_tracks(1.0, 1.0)
+    assert wait_for(lambda: hub.last_drive() == {'x': 0, 'y': 255})
+
+    link.set_active(False)
+    assert wait_for(lambda: hub.last_drive() == {'x': 0, 'y': 0}, timeout=0.5)
+    time.sleep(0.05)
+    count = len(hub.drives())
+    link.set_tracks(1.0, 1.0)              # команды ROS в ручном режиме не уходят
+    time.sleep(0.3)
+    assert len(hub.drives()) == count
+    assert link.connected                  # связь при этом продолжает проверяться
+    assert not link.stats().active
+
+
+def test_reactivated_link_does_not_replay_old_command(stub):
+    hub, link = stub
+    link.set_tracks(1.0, 1.0)
+    assert wait_for(lambda: hub.last_drive() == {'x': 0, 'y': 255})
+    link.set_active(False)
+    assert wait_for(lambda: hub.last_drive() == {'x': 0, 'y': 0}, timeout=0.5)
+
+    link.set_active(True)
+    time.sleep(0.1)
+    assert hub.last_drive() == {'x': 0, 'y': 0}     # старая команда забыта
+    link.set_tracks(0.5, 0.5)
+    assert wait_for(lambda: hub.last_drive() == {'x': 0, 'y': 128})
+
+
+def test_websocket_manual_mode_leaves_joystick_in_control(fake):
+    """В ручном режиме чужие команды (веб-джойстик) мост не перебивает."""
+    import websocket
+    link = make_link(fake)
+    link.start()
+    try:
+        assert wait_for(lambda: link.connected)
+        link.set_active(False)
+        time.sleep(0.2)
+        phone = websocket.create_connection(
+            f'ws://127.0.0.1:{fake.port}/ws', timeout=2.0, http_no_proxy=['*'])
+        phone.send('{"x":0,"y":200}')
+        assert wait_for(lambda: fake.motors == (200, 200))
+        time.sleep(0.5)                     # активный мост давно бы обнулил команду
+        assert fake.motors == (200, 200)
+        phone.close()
+    finally:
+        link.stop()

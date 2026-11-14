@@ -54,3 +54,77 @@ susanin_esp32_bridge:
     invert_left: false       # true, если левая гусеница крутится назад при команде «вперёд»
     invert_right: false
     swap_sides: false        # true, если левый и правый мотор перепутаны местами
+
+susanin_mode:
+  ros__parameters:
+    # manual — мост молчит, управление с веб-джойстика ESP32; auto — команды идут от ROS.
+    # При запуске с autopilot:=true launch-файл заменяет это значение на manual:
+    # робот не должен поехать сам сразу после включения.
+    initial_mode: "auto"
+    http_port: 8080          # страничка оператора: http://<адрес Pi>:8080
+
+susanin_autopilot:
+  ros__parameters:
+    source: "/dev/video0"    # камера; для проверки можно указать папку с кадрами или видеофайл
+    capture_width: 640
+    capture_height: 480
+    capture_fps: 30.0
+    loop_source: false       # true — проигрывать запись по кругу
+    rate: 20.0               # Гц
+    debug_image_period: 0.5  # с между отладочными кадрами для странички оператора (0.0 — выключить)
+    record_dir: ""           # папка для записи кадров каждого автономного заезда ("" — не писать)
+
+    # --- зрение. Пороги цветов — ЗАГЛУШКИ, подбираются по записи с трассы:
+    #     python scripts/vision_replay.py <запись> --sample x,y,w,h
+    vision:
+      width: 320
+      height: 240
+      roi_top: 0.40          # полоса ищется ниже этой доли высоты кадра
+      bands: 6
+      min_band_width: 0.10
+      min_valid_bands: 2
+      min_track_fraction: 0.05
+      track_mode: "not_floor"            # not_floor | color | line
+      floor_hsv_low: [90, 60, 40]        # синий пол. НЕ ИЗМЕРЕНО
+      floor_hsv_high: [130, 255, 255]
+      track_hsv_low: [5, 30, 70]         # дерево (для track_mode: color). НЕ ИЗМЕРЕНО
+      track_hsv_high: [35, 200, 255]
+      line_hsv_low: [0, 0, 0]            # разметка (для track_mode: line). НЕ ИЗМЕРЕНО
+      line_hsv_high: [179, 255, 60]
+      dark_value: 50                     # яркость, ниже которой пиксель считается «тёмным» (туннель)
+      dark_top: 0.15
+      balloon_hsv_low: [140, 80, 80]     # цвет шара. НЕ ИЗМЕРЕНО
+      balloon_hsv_high: [175, 255, 255]
+      balloon_top: 0.10
+      finish_hsv_low: [45, 80, 80]       # цвет финишной метки. НЕ ИЗМЕРЕНО
+      finish_hsv_high: [80, 255, 255]
+      finish_top: 0.60
+
+    # --- автопилот
+    pilot:
+      cruise_speed: 0.12     # м/с (при max_track_speed из susanin_control — НЕ ИЗМЕРЕНО)
+      min_speed: 0.06
+      steer_gain: 1.2        # рад/с на единицу смещения полосы
+      steer_far_gain: 0.4
+      max_angular: 1.0
+      slow_on_turn: 0.6
+      straight_trim: 0.0     # рад/с, поправка увода на прямых. НЕ ИЗМЕРЕНО
+      lost_timeout: 0.6      # с без полосы до остановки
+      frame_timeout: 0.4     # с без кадра до остановки
+      max_run_time: 180.0
+      # События по порядку трассы. Пока цвета шара и финиша не подобраны — только
+      # езда по полосе до её конца: route: ["finish"]. Полный маршрут:
+      # ["tunnel", "balloon", "finish"]. Пустой маршрут: [""].
+      route: ["finish"]
+      tunnel_approach_fraction: 0.15
+      tunnel_enter_fraction: 0.45
+      tunnel_exit_fraction: 0.15
+      tunnel_speed: 0.12
+      tunnel_min_time: 0.8
+      tunnel_max_time: 8.0   # с. НЕ ИЗМЕРЕНО: время проезда туннеля с запасом
+      balloon_fraction: 0.20
+      balloon_speed: 0.12
+      balloon_time: 3.0      # с. НЕ ИЗМЕРЕНО
+      finish_fraction: 0.08
+      finish_delay: 0.5
+      finish_on_track_end: true   # нет финишной метки — финишем считается конец полосы

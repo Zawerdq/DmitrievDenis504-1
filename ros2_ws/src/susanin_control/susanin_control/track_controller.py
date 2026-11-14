@@ -124,11 +124,16 @@ def slew(current: float, target: float, dt: float, cfg: ControlConfig) -> float:
 def shape_duty(duty: float, cfg: ControlConfig) -> float:
     """Убрать зону, в которой мотор не страгивается, но потребляет ток.
 
-    |duty| < duty_deadband  -> 0
-    |duty| < min_duty       -> ±min_duty
+    Значения ниже min_duty округляются к ближайшему из {0, ±min_duty}:
+
+    |duty| < max(duty_deadband, min_duty / 2)  -> 0
+    |duty| < min_duty                          -> ±min_duty
+
+    Округление (а не всегда «вверх») важно для руления: слабая команда на
+    внутреннюю гусеницу не должна превращаться в заметный обратный ход.
     """
     magnitude = abs(duty)
-    if magnitude < cfg.duty_deadband:
+    if magnitude < max(cfg.duty_deadband, cfg.min_duty / 2.0):
         return 0.0
     if magnitude < cfg.min_duty:
         return math.copysign(cfg.min_duty, duty)
@@ -147,6 +152,7 @@ class TrackController:
         self._last_step_time: Optional[float] = None
         self._estop = False
         self._link_ok = True
+        self._enabled = True
         self._timed_out = True
 
     # ---- входы -------------------------------------------------------------
@@ -173,6 +179,12 @@ class TrackController:
         """
         self._link_ok = bool(ok)
         if not self._link_ok:
+            self._hard_stop()
+
+    def set_enabled(self, enabled: bool) -> None:
+        """False — ручной режим: команды ROS игнорируются, рампа сброшена."""
+        self._enabled = bool(enabled)
+        if not self._enabled:
             self._hard_stop()
 
     # ---- состояние ---------------------------------------------------------
@@ -202,7 +214,7 @@ class TrackController:
             or (now - self._last_cmd_time) > self.cfg.cmd_vel_timeout
         )
 
-        if self._estop or not self._link_ok:
+        if self._estop or not self._link_ok or not self._enabled:
             self._hard_stop()
             return 0.0, 0.0
 

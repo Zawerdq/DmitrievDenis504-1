@@ -8,7 +8,7 @@ from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import Bool, Float32MultiArray
+from std_msgs.msg import Bool, Float32MultiArray, String
 
 from susanin_control.track_controller import ControlConfig, TrackController
 
@@ -45,6 +45,7 @@ class ControlNode(Node):
         self.create_subscription(Bool, 'susanin/e_stop', self._on_estop, 10)
         self.create_subscription(
             Bool, 'susanin/esp32/connected', self._on_link, LATCHED_QOS)
+        self.create_subscription(String, 'susanin/mode', self._on_mode, 10)
         self.create_timer(1.0 / rate, self._tick)
 
         self._was_timed_out = True
@@ -74,6 +75,11 @@ class ControlNode(Node):
             else:
                 self.get_logger().error('Связь с ESP32 потеряна — команды обнулены')
         self._controller.set_link_ok(msg.data)
+
+    def _on_mode(self, msg: String) -> None:
+        mode = msg.data.strip().lower()
+        if mode in ('manual', 'auto'):
+            self._controller.set_enabled(mode == 'auto')
 
     def _tick(self) -> None:
         left, right = self._controller.step(time.monotonic())

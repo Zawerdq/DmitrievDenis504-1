@@ -110,8 +110,9 @@ def test_slew_passes_through_zero_on_reversal():
 def test_shape_duty_deadband_and_minimum():
     cfg = make_cfg()
     assert shape_duty(0.01, cfg) == 0.0
-    assert shape_duty(0.1, cfg) == pytest.approx(cfg.min_duty)
-    assert shape_duty(-0.1, cfg) == pytest.approx(-cfg.min_duty)
+    assert shape_duty(0.05, cfg) == 0.0                      # ближе к нулю, чем к min_duty
+    assert shape_duty(0.15, cfg) == pytest.approx(cfg.min_duty)
+    assert shape_duty(-0.15, cfg) == pytest.approx(-cfg.min_duty)
     assert shape_duty(0.5, cfg) == pytest.approx(0.5)
     assert shape_duty(5.0, cfg) == pytest.approx(cfg.max_duty)
 
@@ -213,3 +214,18 @@ def test_output_never_exceeds_max_duty():
 def test_invalid_config_is_rejected(bad):
     with pytest.raises(ValueError):
         TrackController(make_cfg(**bad))
+
+
+def test_manual_mode_blocks_commands_and_resets_ramp():
+    controller = TrackController(make_cfg())
+    controller.step(0.0)
+    controller.set_twist(0.25, 0.0, 0.0)
+    assert run(controller, 0.0, 0.4)[0] > 0.0
+
+    controller.set_enabled(False)                 # оператор взял управление
+    controller.set_twist(0.25, 0.0, 0.45)
+    assert controller.step(0.45) == (0.0, 0.0)
+
+    controller.set_enabled(True)
+    controller.set_twist(0.25, 0.0, 0.5)
+    assert 0.0 < controller.step(0.55)[0] < 0.5   # разгон заново, без рывка

@@ -62,7 +62,7 @@ cleanup() {
     sleep 0.3
   done
   kill -KILL "$LAUNCH_PID" 2>/dev/null
-  pkill -KILL -f 'susanin_(esp32_bridge|control)/lib/' 2>/dev/null
+  pkill -KILL -f 'susanin_[a-z0-9_]+/lib/' 2>/dev/null
   return 0
 }
 trap cleanup EXIT
@@ -129,9 +129,71 @@ expect "аварийный останов при идущих командах" 
 sleep 2
 check "останов держится, пока его не сняли ($(last_motors))" "$STOPPED"
 estop false
-expect "после снятия останова движение возобновилось" "$FORWARD" 15
+# Любой останов переводит робота в MANUAL: движение возобновляется только по AUTO.
+python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8080/mode/auto', method='POST'), timeout=5)" 2>/dev/null
+expect "после снятия останова и включения AUTO движение возобновилось" "$FORWARD" 15
+
+# ---- режимы: в MANUAL мост молчит, команды ROS не проходят ---------------------
+http_post() { python3 -c "import urllib.request,sys; print(urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8080'+sys.argv[1], method='POST'), timeout=5).read().decode())" "$1" 2>/dev/null; }
+http_get() { python3 -c "import urllib.request,sys; print(urllib.request.urlopen('http://127.0.0.1:8080'+sys.argv[1], timeout=5).read().decode())" "$1" 2>/dev/null; }
+
+check "страничка оператора отвечает" "http_get /status | grep -q '\"mode\": \"auto\"'"
+http_post /mode/manual >/dev/null
+expect "MANUAL: команды ROS не доходят до моторов" "$STOPPED" 5
+sleep 2
+check "MANUAL держится при идущих командах ROS ($(last_motors))" "$STOPPED"
+http_post /mode/auto >/dev/null
+expect "AUTO: команды ROS снова проходят" "$FORWARD" 15
+http_post /estop >/dev/null
+expect "кнопка СТОП останавливает робота" "$STOPPED" 5
+check "после СТОП режим — MANUAL" "http_get /status | grep -q '\"mode\": \"manual\"'"
+http_post /estop/clear >/dev/null
+check "после снятия СТОП робот остаётся в MANUAL и стоит ($(last_motors))" "http_get /status | grep -q '\"mode\": \"manual\"' && $STOPPED"
+http_post /mode/auto >/dev/null
+expect "AUTO после снятия СТОП: команды ROS проходят" "$FORWARD" 15
 
 stop_publishing
+check "нет сообщений об ошибках узлов (управление)" "! grep -aqE 'Traceback|process has died' '$LOG'"
+
+# ---- автопилот: синтетические кадры вместо камеры -------------------------------
+echo "=== 4. автопилот на синтетических кадрах ==="
+cleanup
+FRAMES="$(mktemp -d /tmp/susanin_frames.XXXXXX)"
+python3 - "$FRAMES" <<'PYEOF'
+import os, sys
+import cv2
+from susanin_autopilot import sim
+world = sim.make_world(centerline=sim.s_curve(straight=3.5, tail=0.5), size_m=(3.0, 6.5))
+robot, camera = sim.start_pose(world), sim.Camera()
+for index in range(450):                      # 15 с прямой полосы при 30 кадр/с
+    cv2.imwrite(os.path.join(sys.argv[1], f'{index:06d}.jpg'), sim.render(world, robot, camera))
+    robot.step(0.1, 0.0, 1 / 30)
+PYEOF
+LOG="$(mktemp /tmp/susanin_launch_auto.XXXXXX.log)"
+ros2 launch susanin_bringup robot.launch.py fake_esp32:=true autopilot:=true source:="$FRAMES" >"$LOG" 2>&1 &
+LAUNCH_PID=$!
+
+if wait_until "grep -aq 'Источник кадров открыт' '$LOG'" 30; then
+  pass "автопилот открыл источник кадров"
+else
+  fail "автопилот открыл источник кадров"
+fi
+wait_until "http_get /status | grep -q '\"esp32\": true'" 20
+check "с автопилотом робот стартует в MANUAL" "http_get /status | grep -q '\"mode\": \"manual\"'"
+sleep 2
+check "в MANUAL автопилот не едет ($(last_motors))" '[ -z "$(last_motors)" ] || { [ "$(motor 1)" -eq 0 ] && [ "$(motor 2)" -eq 0 ]; }'
+http_post /mode/auto >/dev/null
+expect "AUTO: автопилот ведёт робота по полосе" "$FORWARD" 10
+check "состояние автопилота — follow" "grep -aq 'Автопилот: follow' '$LOG'"
+check "картинка с разметкой доступна оператору" "http_get /status >/dev/null && python3 -c \"import urllib.request; d=urllib.request.urlopen('http://127.0.0.1:8080/frame.jpg', timeout=5).read(); assert d[:2]==b'\\xff\\xd8'\""
+if wait_until "grep -aq 'Автопилот: lost:no_frames' '$LOG'" 30; then
+  pass "кадры кончились -> автопилот остановился сам"
+else
+  fail "кадры кончились -> автопилот остановился сам"
+fi
+expect "после остановки автопилота моторы стоят" "$STOPPED" 5
+rm -rf "$FRAMES"
+
 check "нет сообщений об ошибках узлов" "! grep -aqE 'Traceback|process has died' '$LOG'"
 
 echo

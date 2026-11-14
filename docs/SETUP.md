@@ -24,11 +24,14 @@ ROS 2 не ставится «вслепую»: версия зависит от
 ```bash
 sudo apt update
 sudo apt install -y python3-websocket python3-websockets python3-pytest python3-yaml \
-                    python3-colcon-common-extensions
+                    python3-opencv python3-numpy python3-colcon-common-extensions
 ```
 
 `python3-websocket` — клиент для связи с ESP32. `python3-websockets` нужен только
-эмулятору прошивки и тестам.
+эмулятору прошивки и тестам. `python3-opencv` и `python3-numpy` — автопилоту.
+
+На Raspberry Pi с Debian всё это ставится внутри контейнера автоматически — см.
+[DEPLOY_PI.md](DEPLOY_PI.md); разделы 1–2 ниже нужны только для установки без Docker.
 
 ## 2. Сборка
 
@@ -73,8 +76,12 @@ python3 scripts/esp32_probe.py --led-blink --seconds 10
 Перед первым запуском с моторами — [FIELD_TESTS.md](FIELD_TESTS.md).
 
 ```bash
-ros2 launch susanin_bringup robot.launch.py
+ros2 launch susanin_bringup robot.launch.py                   # управление через ROS
+ros2 launch susanin_bringup robot.launch.py autopilot:=true   # + автопилот по камере
 ```
+
+Вместе с узлами поднимается страничка оператора `http://<адрес Pi>:8080` (режимы
+MANUAL/AUTO, СТОП). Автопилот описан в [AUTOPILOT.md](AUTOPILOT.md).
 
 Ручное управление с клавиатуры (в другом терминале):
 
@@ -126,6 +133,6 @@ ros2 launch susanin_bringup robot.launch.py fake_esp32:=true
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python -m pip install pytest websocket-client websockets pyyaml
-.venv\Scripts\python -m pytest ros2_ws/src/susanin_control/test ros2_ws/src/susanin_esp32_bridge/test ros2_ws/src/susanin_bringup/test
+.venv\Scripts\python -m pip install pytest websocket-client websockets pyyaml numpy opencv-python-headless
+.venv\Scripts\python -m pytest ros2_ws/src/susanin_control/test ros2_ws/src/susanin_esp32_bridge/test ros2_ws/src/susanin_autopilot/test ros2_ws/src/susanin_bringup/test
 ```

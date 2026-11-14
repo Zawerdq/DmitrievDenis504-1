@@ -6,7 +6,7 @@ from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import Bool, Float32MultiArray
+from std_msgs.msg import Bool, Float32MultiArray, String
 
 from susanin_esp32_bridge.link import Esp32Link, LinkConfig
 
@@ -45,6 +45,9 @@ class BridgeNode(Node):
             Float32MultiArray, 'susanin/track_cmd', self._on_track_cmd, 10)
         self.create_subscription(Bool, 'susanin/e_stop', self._on_estop, 10)
         self.create_subscription(Bool, 'susanin/led', self._on_led, 10)
+        # Пока режим никто не объявил, мост активен (как раньше, без узла режимов).
+        self.create_subscription(String, 'susanin/mode', self._on_mode, 10)
+        self._mode = ''
 
         self._last_connected = None
         self._ticks = 0
@@ -69,6 +72,21 @@ class BridgeNode(Node):
 
     def _on_led(self, msg: Bool) -> None:
         self._link.set_led(msg.data)
+
+    def _on_mode(self, msg: String) -> None:
+        mode = msg.data.strip().lower()
+        if mode == self._mode:
+            return
+        if mode not in ('manual', 'auto'):
+            self.get_logger().warning(
+                f'Неизвестный режим «{msg.data}»', throttle_duration_sec=5.0)
+            return
+        self._mode = mode
+        self._link.set_active(mode == 'auto')
+        if mode == 'manual':
+            self.get_logger().info('Ручной режим: мост молчит, управляет веб-джойстик ESP32')
+        else:
+            self.get_logger().info('Режим AUTO: мост передаёт команды ROS')
 
     def _publish_state(self) -> None:
         connected = self._link.connected
@@ -98,6 +116,7 @@ class BridgeNode(Node):
             KeyValue(key='last_y', value=str(stats.last_xy[1])),
             KeyValue(key='command_stale', value=str(stats.command_stale)),
             KeyValue(key='estop', value=str(stats.estop)),
+            KeyValue(key='active', value=str(stats.active)),
         ]
         msg = DiagnosticArray(status=[status])
         msg.header.stamp = self.get_clock().now().to_msg()

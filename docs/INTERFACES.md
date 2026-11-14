@@ -3,45 +3,58 @@
 Все имена относительные (без ведущего `/`), кроме `/diagnostics`; при запуске без
 пространства имён они совпадают с указанными ниже.
 
+## Узлы
+
+| Узел | Пакет | Назначение |
+|---|---|---|
+| `susanin_esp32_bridge` | `susanin_esp32_bridge` | связь с ESP32 по WebSocket |
+| `susanin_control` | `susanin_control` | `/cmd_vel` → команды гусеницам, ограничения, остановы |
+| `susanin_mode` | `susanin_autopilot` | режим MANUAL/AUTO, страничка оператора (порт 8080) |
+| `susanin_autopilot` | `susanin_autopilot` | камера → `/cmd_vel` (запускается при `autopilot:=true`) |
+
 ## Топики
 
 | Топик | Тип | Кто публикует | Кто читает | Смысл |
 |---|---|---|---|---|
-| `/cmd_vel` | `geometry_msgs/msg/Twist` | телеоп, навигация, узел CV | `susanin_control` | `linear.x` — м/с (вперёд +), `angular.z` — рад/с (влево +). Остальные поля игнорируются |
-| `/susanin/e_stop` | `std_msgs/msg/Bool` | оператор, любой узел | `susanin_control`, `susanin_esp32_bridge` | `true` — немедленный останов, держится до `false` |
-| `/susanin/track_cmd` | `std_msgs/msg/Float32MultiArray` | `susanin_control` | `susanin_esp32_bridge` | `data = [левая, правая]`, доля ШИМ −1…1. Внутренний интерфейс: внешним узлам публиковать сюда не следует — это обход ограничений |
-| `/susanin/esp32/connected` | `std_msgs/msg/Bool` | `susanin_esp32_bridge` | `susanin_control`, все желающие | есть ли связь с ESP32 (ping/pong). QoS: reliable + transient local |
-| `/susanin/led` | `std_msgs/msg/Bool` | любой узел | `susanin_esp32_bridge` | светодиод на ESP32 (GPIO2) |
-| `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | `susanin_esp32_bridge` | rqt_robot_monitor и т.п. | связь, задержка, число переподключений, последняя команда |
+| `/cmd_vel` | `geometry_msgs/msg/Twist` | автопилот или teleop | `susanin_control` | `linear.x` — м/с (вперёд +), `angular.z` — рад/с (влево +) |
+| `/susanin/mode` | `std_msgs/msg/String` | `susanin_mode` | мост, управление, автопилот | `manual` или `auto`; повторяется 2 раза в секунду |
+| `/susanin/e_stop` | `std_msgs/msg/Bool` | `susanin_mode`, любой узел | мост, управление, `susanin_mode` | `true` — немедленный останов, держится до `false` |
+| `/susanin/track_cmd` | `std_msgs/msg/Float32MultiArray` | `susanin_control` | мост | `[левая, правая]`, доля ШИМ −1…1. Внутренний интерфейс |
+| `/susanin/esp32/connected` | `std_msgs/msg/Bool` | мост | управление, `susanin_mode` | есть ли связь с ESP32 |
+| `/susanin/autopilot/state` | `std_msgs/msg/String` | автопилот | `susanin_mode` | `состояние:причина`, например `follow:start`, `lost:track_lost` |
+| `/susanin/autopilot/debug/compressed` | `sensor_msgs/msg/CompressedImage` | автопилот | `susanin_mode` | кадр с разметкой алгоритма (JPEG, раз в 0.5 с) |
+| `/susanin/led` | `std_msgs/msg/Bool` | любой узел | мост | светодиод на ESP32 (GPIO2) |
+| `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | мост | любой | связь, задержка, переподключения, последняя команда |
 
-`/susanin/e_stop` принимается с обычным QoS, поэтому подать останов может любой узел и
-команда `ros2 topic pub`. Состояние останова хранится в узлах: если узел перезапустился при
-активном останове, он его «забудет» (второй узел при этом продолжит держать ноль). Источнику
-останова стоит повторять сообщение, пока останов актуален.
+Правила:
 
-Команда `/cmd_vel` должна приходить **не реже 2 раз в секунду** (лучше 10–20 Гц):
-через `cmd_vel_timeout` (0.5 с) без команд робот останавливается.
+* `/cmd_vel` должен приходить не реже 2 раз в секунду, иначе робот останавливается
+  (`cmd_vel_timeout`).
+* В режиме `manual` узел управления выдаёт нули, а мост молчит: роботом управляет
+  веб-джойстик ESP32. Если узел режимов не запущен, мост и управление работают как в `auto`.
+* Источник `/cmd_vel` в каждый момент один: автопилот публикует только в режиме `auto`.
+  Запускать teleop одновременно с работающим автопилотом в режиме `auto` нельзя.
+* `/susanin/e_stop` принимается с обычным QoS, подать его может любой узел и команда
+  `ros2 topic pub`. Любой останов переводит робота в режим `manual`: после снятия останова
+  движение через ROS возобновляется только по явному переходу в `auto`.
+* Останов, нажатый на страничке оператора, `susanin_mode` повторяет дважды в секунду,
+  поэтому перезапущенный узел получит его снова. Останов, поданный другим узлом, хранится
+  только в узлах-получателях — его источник должен повторять сообщение сам.
+
+## Страничка оператора (HTTP, порт 8080)
+
+| Запрос | Действие |
+|---|---|
+| `GET /` | страничка с кнопками |
+| `GET /status` | JSON: `mode`, `estop`, `esp32`, `autopilot` |
+| `GET /frame.jpg` | последний кадр с разметкой алгоритма |
+| `POST /mode/auto`, `POST /mode/manual` | переключить режим |
+| `POST /estop`, `POST /estop/clear` | останов (с переходом в MANUAL) и его снятие |
 
 ## Параметры
 
 Единственный источник — [susanin.yaml](../ros2_ws/src/susanin_bringup/config/susanin.yaml);
 там же комментарии к каждому параметру.
-
-## Подключение узла Computer Vision
-
-Узел CV — отдельный пакет другого участника; в этом репозитории его нет.
-Чтобы управлять роботом, ему достаточно:
-
-1. публиковать `geometry_msgs/msg/Twist` в `/cmd_vel` с частотой 10–20 Гц;
-2. прекращать публикацию (или слать нули), когда цель потеряна — робот остановится сам;
-3. при опасной ситуации публиковать `true` в `/susanin/e_stop`;
-4. читать `/susanin/esp32/connected`, чтобы не «управлять» роботом без связи.
-
-Результаты распознавания узел CV публикует в собственные топики (например,
-`/vision/detections`) — узлы управления их не читают и от них не зависят.
-
-Если источников `/cmd_vel` станет больше одного (CV и ручной телеоп одновременно),
-потребуется арбитраж — стандартный пакет `twist_mux`. Пока источник один, он не нужен.
 
 ## Протокол ESP32 (для справки)
 
