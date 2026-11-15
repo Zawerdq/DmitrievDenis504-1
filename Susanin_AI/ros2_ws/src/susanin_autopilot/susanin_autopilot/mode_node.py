@@ -49,6 +49,7 @@ a{color:#bb86fc}
 <button id="stop" onclick="post('/estop')">СТОП</button>
 <button id="clear" onclick="post('/estop/clear')">снять СТОП</button>
 <p><a href="http://192.168.4.1/" target="joystick">открыть джойстик ESP32</a></p>
+<div id="camwarn" style="color:#ff5252;font-weight:bold;display:none">нет свежего изображения с камеры</div>
 <img id="cam" alt="нет картинки с камеры">
 <script>
 function post(path){fetch(path,{method:'POST'}).then(refresh);}
@@ -59,6 +60,9 @@ function refresh(){fetch('/status').then(r=>r.json()).then(s=>{
   '<br>Автопилот: '+(s.autopilot||'не запущен');
  document.getElementById('auto').className=s.mode=='auto'?'on':'';
  document.getElementById('manual').className=s.mode=='manual'?'on':'';
+ var old=(s.frame_age===null||s.frame_age>3);
+ document.getElementById('camwarn').style.display=(old&&s.autopilot)?'block':'none';
+ document.getElementById('cam').style.opacity=old?0.3:1;
 }).catch(()=>{document.getElementById('info').innerHTML='<b style="color:#ff5252">нет связи с Pi</b>';});}
 setInterval(refresh,500);refresh();
 setInterval(()=>{document.getElementById('cam').src='/frame.jpg?'+Date.now();},700);
@@ -83,6 +87,7 @@ class ModeNode(Node):
         self._autopilot = ''
         self._autopilot_time = 0.0
         self._frame = b''
+        self._frame_time = 0.0
 
         self._mode_pub = self.create_publisher(String, 'susanin/mode', LATCHED_QOS)
         self._estop_pub = self.create_publisher(Bool, 'susanin/e_stop', 10)
@@ -132,6 +137,7 @@ class ModeNode(Node):
     def _on_frame(self, msg: CompressedImage) -> None:
         with self._lock:
             self._frame = bytes(msg.data)
+            self._frame_time = time.monotonic()
 
     # ---- действия оператора (вызываются из потока HTTP) ----------------------
 
@@ -158,6 +164,9 @@ class ModeNode(Node):
             alive = (time.monotonic() - self._autopilot_time) < 2.0
             return {'mode': self._mode, 'estop': self._estop_button or self._estop_seen,
                     'esp32': self._esp32,
+                    # возраст последней картинки от автопилота, с (None — картинок не было)
+                    'frame_age': (round(time.monotonic() - self._frame_time, 1)
+                                  if self._frame_time else None),
                     'autopilot': self._autopilot if alive else ''}
 
     def frame(self) -> bytes:

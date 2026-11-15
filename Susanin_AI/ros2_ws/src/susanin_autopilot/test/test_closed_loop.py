@@ -83,7 +83,7 @@ def test_stops_when_placed_off_track():
     world = sim.make_world()
     robot = sim.start_pose(world, lateral=1.2)      # стоим на голом полу
     pilot, _, _ = run(world, robot, pilot_cfg=follow_only(), seconds=5.0)
-    assert pilot.state == ap.LOST and pilot.reason == 'track_lost'
+    assert pilot.state == ap.LOST and pilot.reason == 'track_not_found'
     start = sim.start_pose(world, lateral=1.2)
     assert abs(robot.x - start.x) < 0.02 and abs(robot.y - start.y) < 0.02   # не поехал
 

@@ -175,3 +175,63 @@ def test_bridge_works_with_susanin_firmware(susanin):
 def test_unknown_firmware_is_rejected():
     with pytest.raises(ValueError):
         FakeEsp32(firmware='nope')
+
+
+# ---- общий СТОП (правка Ф5): блокировка на ESP32 -------------------------------
+
+def test_susanin_lock_blocks_web_joystick(susanin):
+    """СТОП с Pi останавливает робота, даже когда им управляют с телефона."""
+    link = Esp32Link(LinkConfig(host='127.0.0.1', port=susanin.port))
+    link.start()
+    phone = connect(susanin)
+    try:
+        assert wait_for(lambda: link.connected)
+        link.set_active(False)                    # MANUAL: ведёт телефон
+        time.sleep(0.2)
+        phone.send(FULL_AHEAD)
+        assert wait_for(lambda: susanin.motors == (255, 255))
+
+        link.set_estop(True)                      # оператор нажал СТОП на страничке Pi
+        assert wait_for(lambda: susanin.motors == (0, 0), timeout=1.0)
+        assert wait_for(lambda: susanin.locked)
+        for _ in range(10):                       # телефон продолжает давить джойстик
+            phone.send(FULL_AHEAD)
+            time.sleep(0.05)
+            assert susanin.motors == (0, 0)
+
+        link.set_estop(False)                     # СТОП снят
+        assert wait_for(lambda: not susanin.locked, timeout=1.0)
+        phone.send(FULL_AHEAD)
+        assert wait_for(lambda: susanin.motors == (255, 255))
+    finally:
+        phone.close()
+        link.stop()
+
+
+def test_susanin_lock_expires_if_pi_goes_silent(susanin):
+    """Блокировка не «залипает»: без повторов от Pi она снимается сама."""
+    susanin.lock_hold = 0.4
+    ws = connect(susanin)
+    try:
+        ws.send(json.dumps({'lock': 1}))
+        assert wait_for(lambda: susanin.locked)
+        ws.send(FULL_AHEAD)
+        time.sleep(0.1)
+        assert susanin.motors == (0, 0)
+        assert wait_for(lambda: not susanin.locked, timeout=1.5)
+        ws.send(FULL_AHEAD)
+        assert wait_for(lambda: susanin.motors == (255, 255))
+    finally:
+        ws.close()
+
+
+def test_upstream_ignores_lock(upstream):
+    """Исходная прошивка блокировку не знает: СТОП с Pi телефон не блокирует."""
+    ws = connect(upstream)
+    try:
+        ws.send(json.dumps({'lock': 1}))
+        ws.send(FULL_AHEAD)
+        assert wait_for(lambda: upstream.motors == (255, 255))
+        assert not upstream.locked
+    finally:
+        ws.close()

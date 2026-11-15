@@ -336,3 +336,41 @@ def test_websocket_manual_mode_leaves_joystick_in_control(fake):
         phone.close()
     finally:
         link.stop()
+
+
+# ---- общий СТОП: действует и в ручном режиме -----------------------------------
+
+def locks(hub):
+    with hub.lock:
+        return [m['lock'] for m in hub.sent if 'lock' in m]
+
+
+def test_estop_in_manual_mode_keeps_sending_stop_and_lock(stub):
+    hub, link = stub
+    link.set_active(False)                       # MANUAL: мост молчит
+    assert wait_for(lambda: hub.last_drive() == {'x': 0, 'y': 0}, timeout=0.5)
+    time.sleep(0.1)
+    silent = len(hub.drives())
+
+    link.set_estop(True)                         # СТОП нажат в ручном режиме
+    assert wait_for(lambda: len(hub.drives()) > silent + 5)     # нули пошли снова
+    assert all(m == {'x': 0, 'y': 0} for m in hub.drives()[silent:])
+    assert wait_for(lambda: locks(hub)[-1:] == [1])
+
+    link.set_estop(False)
+    assert wait_for(lambda: locks(hub)[-1:] == [0])
+    time.sleep(0.1)
+    count = len(hub.drives())
+    time.sleep(0.2)
+    assert len(hub.drives()) == count            # после снятия мост снова молчит
+
+
+def test_lock_is_refreshed_and_resent_after_reconnect(stub):
+    hub, link = stub
+    link.set_estop(True)
+    assert wait_for(lambda: locks(hub).count(1) >= 2, timeout=2.0)   # повторяется
+    before = locks(hub).count(1)
+    hub.broken = True
+    assert wait_for(lambda: hub.close_count >= 1)
+    hub.broken = False
+    assert wait_for(lambda: locks(hub).count(1) > before, timeout=2.0)

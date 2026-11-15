@@ -5,7 +5,9 @@
 * команда гусеницам отправляется с постоянной частотой (по умолчанию 20 Гц),
   поэтому таймаут прошивки не срабатывает, пока мост жив;
 * если команда от ROS устарела (``command_timeout``), вместо неё уходит ноль;
-* аварийный останов обнуляет команду немедленно;
+* аварийный останов обнуляет команду немедленно и действует в ЛЮБОМ режиме: пока он
+  активен, мост шлёт ноль каждый такт и сообщение блокировки ``{"lock":1}`` (прошивка
+  firmware/susanin_esp32 по нему перестаёт слушать и веб-джойстик);
 * связь проверяется ping/pong: если ESP32 молчит дольше ``pong_timeout``,
   соединение считается потерянным и переустанавливается;
 * при штатном завершении последним сообщением отправляется останов;
@@ -26,6 +28,7 @@ from typing import Callable, Optional, Tuple
 from susanin_esp32_bridge.protocol import (
     drive_message,
     led_message,
+    lock_message,
     STOP_MESSAGE,
     tracks_to_joystick,
 )
@@ -81,6 +84,8 @@ class LinkStats:
     active: bool = True               # False — ручной режим, команды не отправляются
 
 
+LOCK_REFRESH = 0.5   # с: как часто повторять {"lock":1}; прошивка держит блокировку 2 с
+
 LogFn = Callable[[str, str], None]
 
 
@@ -110,6 +115,7 @@ class Esp32Link:
         self._estop = False
         self._active = True
         self._release_pending = False
+        self._unlock_pending = False
         self._led: Optional[bool] = None
         self._led_dirty = False
         self._stats = LinkStats()
@@ -140,7 +146,10 @@ class Esp32Link:
 
     def set_estop(self, active: bool) -> None:
         with self._lock:
+            if self._estop and not active:
+                self._unlock_pending = True       # снять блокировку на ESP32
             self._estop = bool(active)
+            self._stats.estop = self._estop
             if self._estop:
                 self._tracks = (0.0, 0.0)
                 self._tracks_time = None
@@ -234,6 +243,7 @@ class Esp32Link:
         next_send = now
         last_ping = None
         last_rx = now
+        last_lock = None                 # после переподключения блокировка шлётся сразу
 
         while not self._stop.is_set():
             now = self._clock()
@@ -243,14 +253,26 @@ class Esp32Link:
                     active = self._active
                     release = self._release_pending
                     self._release_pending = False
+                    estop = self._estop
+                    unlock = self._unlock_pending and not estop
+                    self._unlock_pending = False
                 x, y = 0, 0
-                if active:
+                if estop:
+                    # СТОП сильнее режима: ноль уходит и в MANUAL, когда мост обычно молчит.
+                    transport.send_text(STOP_MESSAGE)
+                    if last_lock is None or (now - last_lock) >= LOCK_REFRESH:
+                        transport.send_text(lock_message(True))
+                        last_lock = now
+                elif active:
                     x, y = self._current_xy(now)
                     transport.send_text(drive_message(x, y))
                 elif release:
                     transport.send_text(STOP_MESSAGE)
+                if unlock:
+                    transport.send_text(lock_message(False))
+                    last_lock = None
                 with self._lock:
-                    if active or release:
+                    if active or release or estop:
                         self._stats.tx_count += 1
                         self._stats.last_xy = (x, y)
                     led = self._led if self._led_dirty else None

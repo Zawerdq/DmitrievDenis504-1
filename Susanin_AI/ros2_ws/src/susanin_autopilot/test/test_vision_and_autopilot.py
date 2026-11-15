@@ -216,3 +216,33 @@ def test_finish_marker_and_track_end():
 def test_invalid_autopilot_config(bad):
     with pytest.raises(ValueError):
         ap.Autopilot(ap.AutopilotConfig(**bad))
+
+
+def test_never_seeing_the_track_is_not_a_finish():
+    """Старт без полосы в кадре: не «финиш», а «полоса не найдена» (маршрут как в YAML)."""
+    pilot = ap.Autopilot(ap.AutopilotConfig(route=['finish'], lost_timeout=0.3))
+    pilot.start(0.0)
+    command = None
+    for step in range(1, 30):
+        command = pilot.update(Observation(), step * 0.05)
+    assert command.state == ap.LOST and command.reason == 'track_not_found'
+    assert command.linear == 0.0 and command.angular == 0.0
+
+
+def test_finish_marker_alone_without_track_is_not_a_finish():
+    pilot = ap.Autopilot(ap.AutopilotConfig(route=['finish'], lost_timeout=0.3))
+    pilot.start(0.0)
+    pilot.update(Observation(finish_fraction=0.5), 0.05)      # метка есть, полосы не было
+    final = pilot.update(Observation(), 1.0)
+    assert final.state == ap.LOST and final.reason == 'track_not_found'
+
+
+def test_stale_frame_is_marked_on_debug_image():
+    frame = frame_with_track(100, 220)
+    cfg = VisionConfig()
+    obs = analyze(frame, cfg)
+    fresh = draw_debug(frame, obs, cfg, 'follow')
+    stale = draw_debug(frame, obs, cfg, 'follow', stale_seconds=7.0)
+    assert stale.shape == fresh.shape
+    assert stale.mean() < fresh.mean() * 0.7          # кадр заметно затемнён
+    assert (stale[..., 2] > 200).sum() > 50           # и на нём есть красная надпись

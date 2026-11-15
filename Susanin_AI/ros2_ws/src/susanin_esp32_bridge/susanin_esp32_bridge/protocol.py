@@ -8,6 +8,8 @@
     {"fire": 0|1}        силовой ключ (MOSFET) на GPIO15 — мостом не используется
     {"invert1": 0|1}     инверсия мотора 1 (состояние хранится в ОЗУ ESP32)
     {"invert2": 0|1}     инверсия мотора 2
+    {"lock": 0|1}        блокировка моторов (только прошивка firmware/susanin_esp32;
+                         исходная прошивка это сообщение игнорирует)
 
 Микшер прошивки (функция driveMix):
 
@@ -87,6 +89,10 @@ def drive_message(x: int, y: int) -> str:
 
 def led_message(on: bool) -> str:
     return json.dumps({'led': 1 if on else 0}, separators=(',', ':'))
+
+
+def lock_message(locked: bool) -> str:
+    return json.dumps({'lock': 1 if locked else 0}, separators=(',', ':'))
 
 
 STOP_MESSAGE = drive_message(0, 0)
