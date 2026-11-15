@@ -12,8 +12,9 @@
 * ``upstream`` — исходная DiffrentialControl_invert.ino: таймаут 3000 мс, при
   отключении клиента моторы НЕ останавливаются, таймаут перезапускает любой
   текстовый кадр (даже не JSON);
-* ``susanin`` — firmware/susanin_esp32 с правками Ф1–Ф3: таймаут 500 мс, останов
-  при отключении клиента, таймаут перезапускает только корректный JSON.
+* ``susanin`` — firmware/susanin_esp32 с правками Ф1–Ф5: таймаут 500 мс, останов
+  при отключении клиента, таймаут перезапускает только корректный JSON, блокировка
+  моторов по ``{"lock":1}`` (общий СТОП).
 
 ЭТО НЕ ПРОВЕРКА РЕАЛЬНОГО РОБОТА: эмулятор не моделирует моторы, питание,
 нагрев драйвера и качество Wi-Fi.
@@ -41,6 +42,7 @@ from susanin_esp32_bridge.protocol import firmware_mix
 FIRMWARE_COMMAND_TIMEOUT = 3.0  # COMMAND_TIMEOUT = 3000 мс в исходной прошивке
 SUSANIN_COMMAND_TIMEOUT = 0.5   # COMMAND_TIMEOUT = 500 мс после правки Ф1
 SUSANIN_MAX_MESSAGE = 128       # размер буфера message[] после правки Ф3
+SUSANIN_LOCK_HOLD = 2.0         # LOCK_HOLD = 2000 мс: блокировка без повторов снимается сама
 FIRMWARES = ('upstream', 'susanin')
 
 
@@ -65,6 +67,9 @@ class FakeEsp32:
         self._joy = (0, 0)
         self._invert = [1, 1]
         self._led = 0
+        self._locked = False
+        self._lock_time = 0.0
+        self.lock_hold = SUSANIN_LOCK_HOLD
         self._last_command: Optional[float] = None
         self._history: List[Tuple[float, int, int]] = []
         self._message_count = 0
@@ -94,6 +99,11 @@ class FakeEsp32:
     def led(self) -> int:
         with self._lock:
             return self._led
+
+    @property
+    def locked(self) -> bool:
+        with self._lock:
+            return self._locked
 
     @property
     def message_count(self) -> int:
@@ -199,7 +209,17 @@ class FakeEsp32:
         with self._lock:
             self._last_command = time.monotonic()
             self._message_count += 1
-            if 'x' in obj and 'y' in obj:
+            if 'lock' in obj and self._firmware == 'susanin':      # правка Ф5
+                self._locked = int(obj['lock']) == 1
+                self._lock_time = time.monotonic()
+                if self._locked:
+                    self._joy = (0, 0)
+                    self._set_motors(0, 0)
+            elif 'x' in obj and 'y' in obj:
+                if self._locked:                 # блокировка: команды моторам игнорируются
+                    self._joy = (0, 0)
+                    self._set_motors(0, 0)
+                    return
                 self._joy = (int(obj['x']), int(obj['y']))
                 self._set_motors(*firmware_mix(*self._joy, *self._invert))
             elif 'led' in obj:
@@ -220,6 +240,8 @@ class FakeEsp32:
         while True:
             await asyncio.sleep(0.02)
             with self._lock:
+                if self._locked and (time.monotonic() - self._lock_time) > self.lock_hold:
+                    self._locked = False         # Pi замолчала — блокировка снимается сама
                 if self._joy != (0, 0) and self._last_command is not None and (
                         time.monotonic() - self._last_command > self._command_timeout):
                     self._joy = (0, 0)

@@ -8,6 +8,8 @@
 Правила безопасности:
 
 * нет полосы дольше ``lost_timeout`` — стоп, состояние LOST (нужен оператор);
+* конец полосы считается финишем, только если полосу в этом заезде уже вели:
+  старт «в пустоту» даёт LOST с причиной ``track_not_found``, а не финиш;
 * нет свежих кадров дольше ``frame_timeout`` — стоп;
 * туннель не кончился за ``tunnel_max_time`` — стоп;
 * заезд длится дольше ``max_run_time`` — стоп.
@@ -111,6 +113,7 @@ class Autopilot:
         self._run_start = 0.0
         self._state_start = 0.0
         self._last_seen = 0.0
+        self._seen_track = False     # была ли полоса уверенно найдена в этом заезде
         self._last_frame: Optional[float] = None
 
     # ---- управление --------------------------------------------------------
@@ -120,6 +123,7 @@ class Autopilot:
         self._route = list(self.cfg.route)
         self._run_start = now
         self._last_seen = now
+        self._seen_track = False
         self._last_frame = None
         self._enter(FOLLOW, now, 'start')
 
@@ -179,7 +183,9 @@ class Autopilot:
             self._route.pop(0)
             self._enter(BALLOON, now, 'balloon_seen')
             return self._balloon(now)
-        if event == 'finish' and obs.finish_fraction >= cfg.finish_fraction:
+        # Финишная метка засчитывается, только если полосу в этом заезде уже вели.
+        if (event == 'finish' and (self._seen_track or obs.track_found)
+                and obs.finish_fraction >= cfg.finish_fraction):
             self._route.pop(0)
             self._enter(FINISHING, now, 'finish_seen')
         return self._steer(obs, now)
@@ -188,13 +194,18 @@ class Autopilot:
         cfg = self.cfg
         if not obs.track_found:
             if (now - self._last_seen) > cfg.lost_timeout:
-                if self.state == FINISHING or (
+                if not self._seen_track:
+                    # Полосу с начала заезда не видели ни разу: это не финиш и не
+                    # «потеряли», а «не нашли» — робот стоит не там или не тот цвет.
+                    self._enter(LOST, now, 'track_not_found')
+                elif self.state == FINISHING or (
                         cfg.finish_on_track_end and self.next_event == 'finish'):
                     self._enter(FINISHED, now, 'track_end')
                 else:
                     self._enter(LOST, now, 'track_lost')
             return self._command()        # полосы не видно — стоим, не едем вслепую
         self._last_seen = now
+        self._seen_track = True
 
         offset = obs.offset
         if (self.next_event == 'tunnel'

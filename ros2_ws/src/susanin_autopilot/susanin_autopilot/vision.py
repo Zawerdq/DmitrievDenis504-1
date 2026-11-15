@@ -198,10 +198,22 @@ def analyze(frame_bgr: np.ndarray, cfg: VisionConfig) -> Observation:
 
 
 def draw_debug(frame_bgr: np.ndarray, obs: Observation, cfg: VisionConfig,
-               text: str = '') -> np.ndarray:
-    """Кадр с нарисованным результатом — чтобы глазами видеть, что «понял» алгоритм."""
+               text: str = '', stale_seconds: float = 0.0) -> np.ndarray:
+    """Кадр с нарисованным результатом — чтобы глазами видеть, что «понял» алгоритм.
+
+    ``stale_seconds`` > 0 — кадр старый (камера молчит): картинка затемняется и
+    подписывается, чтобы оператор не принял её за текущую.
+    """
     image = cv2.resize(frame_bgr, (cfg.width, cfg.height), interpolation=cv2.INTER_AREA).copy()
     height, width = image.shape[:2]
+    if stale_seconds > 0.0:
+        image = (image * 0.35).astype(np.uint8)
+        cv2.rectangle(image, (0, height // 2 - 22), (width - 1, height // 2 + 22), (0, 0, 0), -1)
+        cv2.putText(image, 'NO FRESH FRAMES', (10, height // 2 - 2), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8, (0, 0, 255), 2, cv2.LINE_AA)
+        cv2.putText(image, f'last frame {stale_seconds:.0f} s ago', (10, height // 2 + 17),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 1, cv2.LINE_AA)
+        return image
     top = int(height * cfg.roi_top)
     cv2.line(image, (0, top), (width - 1, top), (128, 128, 128), 1)
     cv2.line(image, (width // 2, top), (width // 2, height - 1), (128, 128, 128), 1)

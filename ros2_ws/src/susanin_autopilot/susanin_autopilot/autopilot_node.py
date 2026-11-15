@@ -22,6 +22,7 @@ from susanin_autopilot.params import declare_dataclass
 from susanin_autopilot.vision import analyze, draw_debug, VisionConfig
 
 MODE_AUTO = 'auto'
+STALE_FRAME_AFTER = 1.0   # с: кадр старше этого показывается оператору как устаревший
 
 
 class AutopilotNode(Node):
@@ -60,6 +61,7 @@ class AutopilotNode(Node):
         self._last_debug = 0.0
         self._last_obs = None
         self._last_frame = None
+        self._last_frame_time = 0.0
         self._run_dir = ''
         self._frame_count = 0
 
@@ -131,6 +133,7 @@ class AutopilotNode(Node):
             if fresh and frame is not None:
                 obs = analyze(frame, self._vision)
                 self._last_obs, self._last_frame = obs, frame
+                self._last_frame_time = now
                 if self._run_dir and self._pilot.state != ap.IDLE:
                     self._frame_count += 1
                     cv2.imwrite(os.path.join(
@@ -153,7 +156,9 @@ class AutopilotNode(Node):
         if (self._debug_period > 0.0 and self._last_frame is not None
                 and (now - self._last_debug) >= self._debug_period):
             self._last_debug = now
-            image = draw_debug(self._last_frame, self._last_obs, self._vision, text)
+            age = now - self._last_frame_time
+            image = draw_debug(self._last_frame, self._last_obs, self._vision, text,
+                               stale_seconds=age if age > STALE_FRAME_AFTER else 0.0)
             ok, encoded = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 70])
             if ok:
                 msg = CompressedImage(format='jpeg', data=encoded.tobytes())

@@ -6,7 +6,9 @@
 //   F2  stop the motors when a WebSocket client disconnects
 //   F3  parse JSON from a null-terminated copy of the frame; ignore invalid messages
 //   F4  SSID set to the one used on the robot (bot5)
-#define SUSANIN_FW_VERSION "susanin-esp32 1.1 (BOTS DiffrentialControl_invert + F1-F4)"
+//   F5  motor lock: {"lock":1} from the Raspberry Pi blocks ALL drive commands,
+//       including the web joystick, until {"lock":0} or 2 s without a refresh
+#define SUSANIN_FW_VERSION "susanin-esp32 1.2 (BOTS DiffrentialControl_invert + F1-F5)"
 
 #include <TB6612_ESP32.h>
 #include <WiFi.h>
@@ -42,6 +44,13 @@ unsigned long lastCommandTime = 0;
 // [Susanin F1] was 3000. The ROS 2 bridge sends a command every 50 ms and the web
 // joystick now repeats its command every 100 ms, so 500 ms means "the link is lost".
 const long COMMAND_TIMEOUT = 500;
+
+// [Susanin F5] Motor lock (operator STOP on the Raspberry Pi page). While locked,
+// every drive command is ignored. The Pi repeats {"lock":1} twice a second; if it
+// goes silent for LOCK_HOLD ms the lock is released, so it can never get stuck.
+bool motorsLocked = false;
+unsigned long lockTime = 0;
+const unsigned long LOCK_HOLD = 2000;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -418,11 +427,29 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
 
     lastCommandTime = millis();
 
+    // [Susanin F5] lock / unlock
+    if (myObject.hasOwnProperty("lock")) {
+      motorsLocked = ((int)myObject["lock"] == 1);
+      lockTime = millis();
+      if (motorsLocked) {
+        joyX = 0;
+        joyY = 0;
+        motor1.brake();
+        motor2.brake();
+      }
+    }
     // Handle Joystick X and Y data
-    if (myObject.hasOwnProperty("x") && myObject.hasOwnProperty("y")) {
-      joyX = (int)myObject["x"];
-      joyY = (int)myObject["y"];
-      driveMix(joyX, joyY);
+    else if (myObject.hasOwnProperty("x") && myObject.hasOwnProperty("y")) {
+      if (motorsLocked) {          // [Susanin F5] ignore any drive command while locked
+        joyX = 0;
+        joyY = 0;
+        motor1.brake();
+        motor2.brake();
+      } else {
+        joyX = (int)myObject["x"];
+        joyY = (int)myObject["y"];
+        driveMix(joyX, joyY);
+      }
     }
     else if (myObject.hasOwnProperty("fire")) {
       fire = (int)myObject["fire"];      
@@ -509,6 +536,13 @@ void setup()
 void loop()
 {
   ws.cleanupClients();
+
+  // [Susanin F5] release the lock if the Pi stopped refreshing it
+  unsigned long lockedAt = lockTime;
+  if (motorsLocked && (millis() - lockedAt > LOCK_HOLD)) {
+    motorsLocked = false;
+    Serial.println("Motor lock expired.");
+  }
 
   digitalWrite(RELAY_PIN, fire);
   digitalWrite(LED_PIN, led);
