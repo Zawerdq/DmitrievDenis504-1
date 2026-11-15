@@ -1,16 +1,33 @@
 #include "subvector.hpp"
 #include <iostream>
 #include <random>
+#include <source_location>
+#include <string>
 #include <vector>
 
-void check(bool ok) {
-    if (!ok) throw std::runtime_error("check failed");
+void check(bool ok, std::source_location where = std::source_location::current()) {
+    if (!ok) throw std::runtime_error("check failed at line " + std::to_string(where.line()));
 }
 
 int main() {
     check(Growth::add(10).next(95, 100) == 100);
     check(Growth::multiply(1.5).next(3, 100) == 5);
     check(Growth::multiply(1e300).next(2, 100) == 100);
+    for (auto value : {0.0, 1.0, -2.0, std::numeric_limits<double>::infinity(),
+                       std::numeric_limits<double>::quiet_NaN()}) {
+        bool rejected = false;
+        try { Growth::multiply(value); }
+        catch (const std::invalid_argument&) { rejected = true; }
+        check(rejected);
+    }
+    bool rejected = false;
+    try { Growth::add(0); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    check(rejected);
+    subvector fractional(Growth::multiply(1.5));
+    for (unsigned capacity : {1u, 2u, 3u, 5u, 5u, 8u}) {
+        check(fractional.push_back(3) && fractional.capacity() == capacity);
+    }
     subvector empty;
     check(!empty.data() && !empty.capacity() && !empty.size() && !empty.pop_back());
     for (auto policy : {Growth::add(10), Growth::add(100),

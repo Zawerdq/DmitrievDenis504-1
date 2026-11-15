@@ -96,7 +96,10 @@ int main(int argc, char** argv) try {
     auto constructors = csv(dir / "std_constructors.csv", "constructor,size,capacity,values");
     auto record = [&](const char* name, const std::vector<int>& v) {
         constructors << name << ',' << v.size() << ',' << v.capacity() << ',';
-        for (int x : v) constructors << x << ' ';
+        for (std::size_t i = 0; i < v.size(); ++i) {
+            if (i) constructors << ' ';
+            constructors << v[i];
+        }
         constructors << '\n';
     };
     std::vector<int> empty, zeros(4), fill(4, 7), list{4, 7}, copy(list);
