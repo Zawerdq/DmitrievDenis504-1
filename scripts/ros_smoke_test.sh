@@ -94,7 +94,7 @@ BACKWARD='[ "$(motor 1)" -lt 0 ] && [ "$(motor 2)" -lt 0 ]'
 STOPPED='[ "$(motor 1)" -eq 0 ] && [ "$(motor 2)" -eq 0 ]'
 TURN_LEFT='[ "$(motor 1)" -lt 0 ] && [ "$(motor 2)" -gt 0 ]'
 TURN_RIGHT='[ "$(motor 1)" -gt 0 ] && [ "$(motor 2)" -lt 0 ]'
-estop() { timeout 30 ros2 topic pub --once /susanin/e_stop std_msgs/msg/Bool "{data: $1}" >/dev/null 2>&1; }
+estop() { timeout 40 ros2 topic pub -w 3 --times 5 -r 5 /susanin/e_stop std_msgs/msg/Bool "{data: $1}" >/dev/null 2>&1; }
 
 if wait_until "grep -aq 'Связь с ESP32 установлена' '$LOG'" 20; then
   pass "мост подключился к эмулятору"
