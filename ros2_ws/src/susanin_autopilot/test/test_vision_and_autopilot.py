@@ -198,10 +198,12 @@ def test_finish_marker_and_track_end():
     assert marker.update(seen(finish_fraction=0.5), 0.1).state == ap.FINISHING
     assert marker.update(seen(), 0.5).state == ap.FINISHED
 
-    no_marker = ap.Autopilot(ap.AutopilotConfig(route=['finish'], lost_timeout=0.2))
+    no_marker = ap.Autopilot(ap.AutopilotConfig(route=['finish'], lost_timeout=0.2,
+                                                finish_min_track_time=1.0))
     no_marker.start(0.0)
-    no_marker.update(seen(), 0.1)
-    end = no_marker.update(Observation(), 0.5)
+    for step in range(1, 30):                    # ведём полосу 1.45 с
+        no_marker.update(seen(), step * 0.05)
+    end = no_marker.update(Observation(), 2.0)
     assert end.state == ap.FINISHED and end.reason == 'track_end'
 
     strict = ap.Autopilot(ap.AutopilotConfig(route=['finish'], lost_timeout=0.2,
@@ -246,3 +248,31 @@ def test_stale_frame_is_marked_on_debug_image():
     assert stale.shape == fresh.shape
     assert stale.mean() < fresh.mean() * 0.7          # кадр заметно затемнён
     assert (stale[..., 2] > 200).sum() > 50           # и на нём есть красная надпись
+
+
+def test_one_frame_of_track_is_not_enough_for_a_finish():
+    """Полоса мелькнула на один кадр и пропала: это потеря, а не финиш."""
+    pilot = ap.Autopilot(ap.AutopilotConfig(route=['finish'], lost_timeout=0.3))
+    pilot.start(0.0)
+    pilot.update(seen(), 0.05)
+    final = None
+    for step in range(2, 30):
+        final = pilot.update(Observation(), step * 0.05)
+    assert final.state == ap.LOST and final.reason == 'track_lost'
+
+
+def test_brief_flicker_does_not_reset_tracking_time():
+    """Короткие пропуски (блик, смаз) короче lost_timeout не обнуляют время ведения."""
+    cfg = ap.AutopilotConfig(route=['finish'], lost_timeout=0.5, finish_min_track_time=1.0)
+    pilot = ap.Autopilot(cfg)
+    pilot.start(0.0)
+    now = 0.0
+    for _ in range(4):                            # 4 отрезка по 0.4 с с пропусками 0.2 с
+        for _ in range(8):
+            now += 0.05
+            assert pilot.update(seen(), now).state == ap.FOLLOW
+        for _ in range(4):
+            now += 0.05
+            assert pilot.update(Observation(), now).state == ap.FOLLOW
+    final = pilot.update(Observation(), now + 1.0)
+    assert final.state == ap.FINISHED and final.reason == 'track_end'

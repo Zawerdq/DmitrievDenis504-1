@@ -8,8 +8,9 @@
 Правила безопасности:
 
 * нет полосы дольше ``lost_timeout`` — стоп, состояние LOST (нужен оператор);
-* конец полосы считается финишем, только если полосу в этом заезде уже вели:
-  старт «в пустоту» даёт LOST с причиной ``track_not_found``, а не финиш;
+* конец полосы считается финишем, только если перед этим полосу вели не меньше
+  ``finish_min_track_time`` секунд: старт «в пустоту» даёт LOST ``track_not_found``,
+  полоса, мелькнувшая на один кадр, — LOST ``track_lost``;
 * нет свежих кадров дольше ``frame_timeout`` — стоп;
 * туннель не кончился за ``tunnel_max_time`` — стоп;
 * заезд длится дольше ``max_run_time`` — стоп.
@@ -67,6 +68,7 @@ class AutopilotConfig:
     finish_fraction: float = 0.08
     finish_delay: float = 0.5         # с, сколько ещё ехать после обнаружения метки
     finish_on_track_end: bool = True  # нет метки: конец полосы после последнего события = финиш
+    finish_min_track_time: float = 2.0   # с: сколько нужно вести полосу, чтобы её конец был финишем
 
     def validate(self) -> None:
         for name in ('cruise_speed', 'min_speed', 'steer_gain', 'max_angular', 'lost_timeout',
@@ -114,6 +116,8 @@ class Autopilot:
         self._state_start = 0.0
         self._last_seen = 0.0
         self._seen_track = False     # была ли полоса уверенно найдена в этом заезде
+        self._tracked_time = 0.0     # сколько секунд подряд полосу вели
+        self._prev_found: Optional[float] = None
         self._last_frame: Optional[float] = None
 
     # ---- управление --------------------------------------------------------
@@ -124,6 +128,8 @@ class Autopilot:
         self._run_start = now
         self._last_seen = now
         self._seen_track = False
+        self._tracked_time = 0.0
+        self._prev_found = None
         self._last_frame = None
         self._enter(FOLLOW, now, 'start')
 
@@ -199,11 +205,18 @@ class Autopilot:
                     # «потеряли», а «не нашли» — робот стоит не там или не тот цвет.
                     self._enter(LOST, now, 'track_not_found')
                 elif self.state == FINISHING or (
-                        cfg.finish_on_track_end and self.next_event == 'finish'):
+                        cfg.finish_on_track_end and self.next_event == 'finish'
+                        and self._tracked_time >= cfg.finish_min_track_time):
                     self._enter(FINISHED, now, 'track_end')
                 else:
+                    # В том числе: полосу видели мельком и тут же потеряли — это не финиш.
                     self._enter(LOST, now, 'track_lost')
+                self._tracked_time = 0.0
+            self._prev_found = None
             return self._command()        # полосы не видно — стоим, не едем вслепую
+        if self._prev_found is not None:
+            self._tracked_time += max(0.0, now - self._prev_found)
+        self._prev_found = now
         self._last_seen = now
         self._seen_track = True
 

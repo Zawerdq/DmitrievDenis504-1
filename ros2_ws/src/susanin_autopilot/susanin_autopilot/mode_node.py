@@ -60,7 +60,7 @@ function refresh(){fetch('/status').then(r=>r.json()).then(s=>{
   '<br>Автопилот: '+(s.autopilot||'не запущен');
  document.getElementById('auto').className=s.mode=='auto'?'on':'';
  document.getElementById('manual').className=s.mode=='manual'?'on':'';
- var old=(s.frame_age===null||s.frame_age>3);
+ var old=(s.debug_image_age===null||s.debug_image_age>3);
  document.getElementById('camwarn').style.display=(old&&s.autopilot)?'block':'none';
  document.getElementById('cam').style.opacity=old?0.3:1;
 }).catch(()=>{document.getElementById('info').innerHTML='<b style="color:#ff5252">нет связи с Pi</b>';});}
@@ -164,9 +164,11 @@ class ModeNode(Node):
             alive = (time.monotonic() - self._autopilot_time) < 2.0
             return {'mode': self._mode, 'estop': self._estop_button or self._estop_seen,
                     'esp32': self._esp32,
-                    # возраст последней картинки от автопилота, с (None — картинок не было)
-                    'frame_age': (round(time.monotonic() - self._frame_time, 1)
-                                  if self._frame_time else None),
+                    # Сколько секунд назад узел автопилота прислал картинку (None — не
+                    # присылал). Это НЕ возраст кадра камеры: при молчащей камере узел
+                    # продолжает слать затемнённую картинку с надписью о возрасте кадра.
+                    'debug_image_age': (round(time.monotonic() - self._frame_time, 1)
+                                        if self._frame_time else None),
                     'autopilot': self._autopilot if alive else ''}
 
     def frame(self) -> bytes:

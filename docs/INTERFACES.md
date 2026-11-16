@@ -50,7 +50,7 @@
 | Запрос | Действие |
 |---|---|
 | `GET /` | страничка с кнопками |
-| `GET /status` | JSON: `mode`, `estop`, `esp32`, `autopilot`, `frame_age` (возраст картинки, с) |
+| `GET /status` | JSON: `mode`, `estop`, `esp32`, `autopilot`, `debug_image_age` (сколько секунд назад узел автопилота прислал картинку; это не возраст кадра камеры) |
 | `GET /frame.jpg` | последний кадр с разметкой алгоритма |
 | `POST /mode/auto`, `POST /mode/manual` | переключить режим |
 | `POST /estop`, `POST /estop/clear` | останов (с переходом в MANUAL) и его снятие |
