@@ -42,7 +42,6 @@ from susanin_esp32_bridge.protocol import firmware_mix
 FIRMWARE_COMMAND_TIMEOUT = 3.0  # COMMAND_TIMEOUT = 3000 мс в исходной прошивке
 SUSANIN_COMMAND_TIMEOUT = 0.5   # COMMAND_TIMEOUT = 500 мс после правки Ф1
 SUSANIN_MAX_MESSAGE = 128       # размер буфера message[] после правки Ф3
-SUSANIN_LOCK_HOLD = 2.0         # LOCK_HOLD = 2000 мс: блокировка без повторов снимается сама
 FIRMWARES = ('upstream', 'susanin')
 
 
@@ -68,8 +67,6 @@ class FakeEsp32:
         self._invert = [1, 1]
         self._led = 0
         self._locked = False
-        self._lock_time = 0.0
-        self.lock_hold = SUSANIN_LOCK_HOLD
         self._last_command: Optional[float] = None
         self._history: List[Tuple[float, int, int]] = []
         self._message_count = 0
@@ -210,8 +207,7 @@ class FakeEsp32:
             self._last_command = time.monotonic()
             self._message_count += 1
             if 'lock' in obj and self._firmware == 'susanin':      # правка Ф5
-                self._locked = int(obj['lock']) == 1
-                self._lock_time = time.monotonic()
+                self._locked = int(obj['lock']) == 1      # держится до явного {"lock":0}
                 if self._locked:
                     self._joy = (0, 0)
                     self._set_motors(0, 0)
@@ -240,8 +236,6 @@ class FakeEsp32:
         while True:
             await asyncio.sleep(0.02)
             with self._lock:
-                if self._locked and (time.monotonic() - self._lock_time) > self.lock_hold:
-                    self._locked = False         # Pi замолчала — блокировка снимается сама
                 if self._joy != (0, 0) and self._last_command is not None and (
                         time.monotonic() - self._last_command > self._command_timeout):
                     self._joy = (0, 0)

@@ -208,21 +208,26 @@ def test_susanin_lock_blocks_web_joystick(susanin):
         link.stop()
 
 
-def test_susanin_lock_expires_if_pi_goes_silent(susanin):
-    """Блокировка не «залипает»: без повторов от Pi она снимается сама."""
-    susanin.lock_hold = 0.4
-    ws = connect(susanin)
+def test_susanin_lock_survives_pi_going_silent(susanin):
+    """Pi пропала после СТОП — робот остаётся заблокированным до явного снятия."""
+    pi = connect(susanin)
+    pi.send(json.dumps({'lock': 1}))
+    assert wait_for(lambda: susanin.locked)
+    crash(pi)                                     # Pi «упала», блокировку никто не повторяет
+    phone = connect(susanin)
     try:
-        ws.send(json.dumps({'lock': 1}))
-        assert wait_for(lambda: susanin.locked)
-        ws.send(FULL_AHEAD)
-        time.sleep(0.1)
-        assert susanin.motors == (0, 0)
-        assert wait_for(lambda: not susanin.locked, timeout=1.5)
-        ws.send(FULL_AHEAD)
+        deadline = time.monotonic() + 3.0         # дольше прежних 2 с автоснятия
+        while time.monotonic() < deadline:
+            phone.send(FULL_AHEAD)
+            time.sleep(0.1)
+            assert susanin.motors == (0, 0)
+        assert susanin.locked
+        phone.send(json.dumps({'lock': 0}))       # явное снятие
+        assert wait_for(lambda: not susanin.locked)
+        phone.send(FULL_AHEAD)
         assert wait_for(lambda: susanin.motors == (255, 255))
     finally:
-        ws.close()
+        phone.close()
 
 
 def test_upstream_ignores_lock(upstream):

@@ -7,8 +7,8 @@
 //   F3  parse JSON from a null-terminated copy of the frame; ignore invalid messages
 //   F4  SSID set to the one used on the robot (bot5)
 //   F5  motor lock: {"lock":1} from the Raspberry Pi blocks ALL drive commands,
-//       including the web joystick, until {"lock":0} or 2 s without a refresh
-#define SUSANIN_FW_VERSION "susanin-esp32 1.2 (BOTS DiffrentialControl_invert + F1-F5)"
+//       including the web joystick, until {"lock":0} or a reset of the ESP32
+#define SUSANIN_FW_VERSION "susanin-esp32 1.3 (BOTS DiffrentialControl_invert + F1-F5)"
 
 #include <TB6612_ESP32.h>
 #include <WiFi.h>
@@ -46,11 +46,10 @@ unsigned long lastCommandTime = 0;
 const long COMMAND_TIMEOUT = 500;
 
 // [Susanin F5] Motor lock (operator STOP on the Raspberry Pi page). While locked,
-// every drive command is ignored. The Pi repeats {"lock":1} twice a second; if it
-// goes silent for LOCK_HOLD ms the lock is released, so it can never get stuck.
+// every drive command is ignored. The lock is held until an explicit {"lock":0}:
+// if the Pi dies after STOP, the robot stays stopped. The way out without the Pi
+// is the RST button or the power switch (the lock is not stored across resets).
 bool motorsLocked = false;
-unsigned long lockTime = 0;
-const unsigned long LOCK_HOLD = 2000;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -430,7 +429,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     // [Susanin F5] lock / unlock
     if (myObject.hasOwnProperty("lock")) {
       motorsLocked = ((int)myObject["lock"] == 1);
-      lockTime = millis();
       if (motorsLocked) {
         joyX = 0;
         joyY = 0;
@@ -536,13 +534,6 @@ void setup()
 void loop()
 {
   ws.cleanupClients();
-
-  // [Susanin F5] release the lock if the Pi stopped refreshing it
-  unsigned long lockedAt = lockTime;
-  if (motorsLocked && (millis() - lockedAt > LOCK_HOLD)) {
-    motorsLocked = false;
-    Serial.println("Motor lock expired.");
-  }
 
   digitalWrite(RELAY_PIN, fire);
   digitalWrite(LED_PIN, led);
