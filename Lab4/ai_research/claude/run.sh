@@ -19,4 +19,4 @@ fi
 
 python3 compare.py
 python3 plot.py
-python3 make_pdf.py
+python3 ../../report/make_pdf.py

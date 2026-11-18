@@ -403,7 +403,7 @@ summary["first_reuse"] = dict(zip(map(str, ks2), fr))
 
 # ---------------------------------------------------------------- 12 сравнение с отчётами Fable и Codex
 fable = defaultdict(list)
-for r in read("../../data/strategies.csv"):
+for r in read("../../../data/strategies.csv"):
     fable[(r["strategy"], int(r["n"]))].append(float(r["seconds"]))
 codex = defaultdict(list)
 for r in read("../../codex/data/times.csv"):

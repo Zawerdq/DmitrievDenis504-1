@@ -1,6 +1,9 @@
 # Lab4 · subvector — решение Claude
 
-Итоговый отчёт: **[Lab4_subvector_report.pdf](Lab4_subvector_report.pdf)** (исходник — [REPORT.md](REPORT.md)). В нём задание, теория, устройство `std::vector`, все замеры и графики, сравнение с решениями Fable (`../`), Codex (`../codex/`) и DeepSeek (`../deepseek/`), реализации из интернета, затраты ИИ и выводы.
+Решение Claude и стенды, на которых построены оба документа:
+
+* отчёт по лабе — [../../Lab4_subvector.pdf](../../Lab4_subvector.pdf): задание, теория, `std::vector`, замеры этого стенда;
+* исследование ИИ — [../AI_comparison.pdf](../AI_comparison.pdf): сравнение с Fable (`../../`), Codex (`../codex/`) и DeepSeek (`../deepseek/`), затраты.
 
 | Файл | Что внутри |
 |---|---|
@@ -9,8 +12,8 @@
 | `bench.cpp` | замеры: `capacity latency realloc step factor types strategies` |
 | `capseq.cpp` | последовательность ёмкостей `std::vector` (libstdc++ и libc++) |
 | `compare.cpp`, `compare.py` | общий стенд для Fable, Codex, DeepSeek, Claude и двух `std::vector` |
-| `plot.py` | 12 графиков в `plots/` и сводка чисел `data/summary.json` |
-| `make_pdf.py`, `report.css` | REPORT.md → HTML (pandoc) → PDF (Chromium) |
+| `plot.py` | 12 графиков в `plots/` (1–9 и 11 — для отчёта по лабе, 10 и 12 — для сравнения ИИ) и сводка чисел `data/summary.json` |
+| `../../report/make_pdf.py` | оба PDF: Markdown → HTML (pandoc) → PDF (Chromium) |
 | `run.sh` | всё подряд, ≈15 минут |
 | `data/` | все исходные CSV (`equivalence.csv` — первая версия против шаблона класса) |
 

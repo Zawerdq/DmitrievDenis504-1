@@ -28,7 +28,7 @@ def compare(archive):
             (source / name).write_bytes(zipped.read(name))
     programs = {
         "Codex": compile_program("compare-codex", "compare.cpp"),
-        "Fable": compile_program("compare-fable", "-DUSE_FABLE", "compare.cpp", "../subvector.cpp"),
+        "Fable": compile_program("compare-fable", "-DUSE_FABLE", "compare.cpp", "../../subvector.cpp"),
         "Journal": compile_program("compare-journal", "-DUSE_JOURNAL", "-I", source,
                                    "compare.cpp", source / "container.cpp"),
     }

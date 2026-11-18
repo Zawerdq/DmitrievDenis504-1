@@ -8,7 +8,7 @@
 | `tests.cpp` | Claude | 1022 проверки, сверка со `std::vector` через `pop_back` (другого доступа к элементам у класса нет) |
 | `ub_factor.cpp` | Claude | демонстрация UB при множителе `1e300` (`-fsanitize=float-cast-overflow`) |
 
-Разбор решения и общий стенд со всеми реализациями — раздел 7.4 и рис. 10 в [../claude/Lab4_subvector_report.pdf](../claude/Lab4_subvector_report.pdf).
+Разбор решения и общий стенд со всеми реализациями — раздел 7 и рис. 10 в [../AI_comparison.pdf](../AI_comparison.pdf).
 
 ```bash
 g++ -std=c++17 -O1 -g -fsanitize=address,undefined,float-cast-overflow tests.cpp -o tests && ./tests

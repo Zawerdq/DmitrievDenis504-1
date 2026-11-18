@@ -9,7 +9,7 @@
 #include <stdexcept>
 
 #if defined(IMPL_FABLE)
-#include "../subvector.h"
+#include "../../subvector.h"
 #elif defined(IMPL_CODEX)
 #include "../codex/subvector.hpp"
 #elif defined(IMPL_DEEPSEEK)

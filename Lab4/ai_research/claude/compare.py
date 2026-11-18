@@ -10,7 +10,7 @@ B = HERE / "build"
 F = ["-std=c++20", "-O2", "-Wall", "-Wextra"]
 
 builds = {
-    "Fable": ["g++", *F, "-DIMPL_FABLE", "compare.cpp", "../subvector.cpp"],
+    "Fable": ["g++", *F, "-DIMPL_FABLE", "compare.cpp", "../../subvector.cpp"],
     "Codex": ["g++", *F, "-DIMPL_CODEX", "compare.cpp"],
     "DeepSeek": ["g++", *F, "-DIMPL_DEEPSEEK", "compare.cpp"],
     "Claude new+цикл": ["g++", *F, "compare.cpp",],
