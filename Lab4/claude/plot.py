@@ -344,8 +344,8 @@ if (D / "compare.csv").exists():
     cm = defaultdict(list)
     for r in read("compare.csv"):
         cm[(r["implementation"], r["mode"], int(r["n"]))].append(float(r["seconds"]))
-    impls = ["Fable", "Codex", "Claude new+цикл", "Claude realloc", "std::vector libstdc++", "std::vector libc++"]
-    icol = ["#1f77b4", "#ff7f0e", "#2ca02c", "#98df8a", "#9467bd", "#c5b0d5"]
+    impls = ["Fable", "Codex", "DeepSeek", "Claude new+цикл", "Claude realloc", "std::vector libstdc++", "std::vector libc++"]
+    icol = ["#1f77b4", "#ff7f0e", "#17becf", "#2ca02c", "#98df8a", "#9467bd", "#c5b0d5"]
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.3))
     for ax, (mode, n, title) in zip(axes, [("x2", 1_000_000, "×2, 1 млн"), ("x2", 10_000_000, "×2, 10 млн"),
                                            ("add10", 200_000, "+10, 200 тыс.")]):
@@ -354,7 +354,7 @@ if (D / "compare.csv").exists():
             if (name, mode, n) not in cm:
                 continue
             v = [t * 1e3 for t in cm[(name, mode, n)]]
-            xs.append(name.replace(" ", "\n", 1))
+            xs.append(name.replace(" ", "\n", 1).replace("std::vector", "std::\nvector"))
             ms.append(median(v)); lo.append(median(v) - min(v)); hi.append(max(v) - median(v)); cs.append(col)
         ax.bar(range(len(xs)), ms, yerr=[lo, hi], color=cs, capsize=3)
         ax.set_xticks(range(len(xs)), xs, fontsize=7)

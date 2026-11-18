@@ -2,7 +2,7 @@
 
 Отчёт с графиками и выводами: [REPORT.md](REPORT.md).
 
-Другие решения той же лабораторной: [codex/](codex/) и [claude/](claude/). Полный итоговый PDF со сравнением всех трёх решений: [claude/Lab4_subvector_report.pdf](claude/Lab4_subvector_report.pdf).
+Другие решения той же лабораторной: [codex/](codex/), [deepseek/](deepseek/) и [claude/](claude/). Полный итоговый PDF со сравнением всех решений: [claude/Lab4_subvector_report.pdf](claude/Lab4_subvector_report.pdf).
 
 ## Файлы
 

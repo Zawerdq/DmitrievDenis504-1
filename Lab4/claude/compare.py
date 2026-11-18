@@ -1,4 +1,4 @@
-"""Общий стенд: Fable, Codex, Claude (new+цикл и realloc), std::vector (libstdc++ и libc++).
+"""Общий стенд: Fable, Codex, DeepSeek, Claude (new+цикл и realloc), std::vector (libstdc++ и libc++).
 Каждое измерение — отдельный процесс, порядок перемешан, 7 раундов. Пишет data/compare.csv."""
 import csv
 import random
@@ -12,6 +12,7 @@ F = ["-std=c++20", "-O2", "-Wall", "-Wextra"]
 builds = {
     "Fable": ["g++", *F, "-DIMPL_FABLE", "compare.cpp", "../subvector.cpp"],
     "Codex": ["g++", *F, "-DIMPL_CODEX", "compare.cpp"],
+    "DeepSeek": ["g++", *F, "-DIMPL_DEEPSEEK", "compare.cpp"],
     "Claude new+цикл": ["g++", *F, "compare.cpp", "subvector.cpp"],
     "Claude realloc": ["g++", *F, "-DIMPL_CLAUDE_REALLOC", "compare.cpp", "subvector.cpp"],
     "std::vector libstdc++": ["g++", *F, "-DIMPL_STD", "compare.cpp"],

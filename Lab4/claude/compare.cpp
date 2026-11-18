@@ -12,6 +12,8 @@
 #include "../subvector.h"
 #elif defined(IMPL_CODEX)
 #include "../codex/subvector.hpp"
+#elif defined(IMPL_DEEPSEEK)
+#include "../deepseek/subvector.hpp"
 #elif defined(IMPL_STD)
 #include <vector>
 #else
@@ -31,6 +33,10 @@ int main(int argc, char** argv) {
     subvector v(add10 ? Growth::add(10) : Growth::multiply(2));
     auto push = [&](int i) { return v.push_back(i); };
     auto at = [&](unsigned i) { return v.data()[i]; };
+#elif defined(IMPL_DEEPSEEK)
+    // у DeepSeek нет чтения по индексу: контрольная сумма считается через pop_back (вне таймера)
+    subvector v(add10 ? subvector::Strategy::Plus10 : subvector::Strategy::Mul2);
+    auto push = [&](int i) { return v.push_back(i); };
 #elif defined(IMPL_STD)
     if (add10) return 3;   // у std::vector нет прибавляющей стратегии
     std::vector<int> v;
@@ -50,10 +56,14 @@ int main(int argc, char** argv) {
         if (!push(int(i))) return 2;
     auto t1 = std::chrono::steady_clock::now();
     std::uint64_t sum = 0;
+#if defined(IMPL_DEEPSEEK)
+    for (unsigned i = 0; i < n; ++i) sum += unsigned(v.pop_back());
+#else
     for (unsigned i = 0; i < n; ++i) sum += unsigned(at(i));
+#endif
     if (sum != std::uint64_t(n) * (n - 1) / 2) return 4;
     std::printf("%.9f,%llu\n", std::chrono::duration<double>(t1 - t0).count(), (unsigned long long)sum);
-#if !defined(IMPL_FABLE) && !defined(IMPL_CODEX) && !defined(IMPL_STD)
+#if !defined(IMPL_FABLE) && !defined(IMPL_CODEX) && !defined(IMPL_STD) && !defined(IMPL_DEEPSEEK)
     destructor(&v);
 #endif
     return 0;
