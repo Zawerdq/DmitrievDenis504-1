@@ -43,13 +43,14 @@ int main(int argc, char** argv) {
     auto push = [&](int i) { v.push_back(i); return true; };
     auto at = [&](unsigned i) { return v[i]; };
 #else
-    subvector v; init(&v);
 #if defined(IMPL_CLAUDE_REALLOC)
-    set_realloc(&v, Realloc::CRealloc);
+    const Realloc how = Realloc::CRealloc;
+#else
+    const Realloc how = Realloc::NewLoop;
 #endif
-    if (add10) set_growth_step(&v, 10); else set_growth_factor(&v, 2.0);
-    auto push = [&](int i) { return push_back(&v, i); };
-    auto at = [&](unsigned i) { return v.mas[i]; };
+    subvector<int> v(add10 ? Growth::add(10) : Growth::mul(2.0), how);
+    auto push = [&](int i) { return v.push_back(i); };
+    auto at = [&](unsigned i) { return v[i]; };
 #endif
     auto t0 = std::chrono::steady_clock::now();
     for (unsigned i = 0; i < n; ++i)
@@ -63,8 +64,5 @@ int main(int argc, char** argv) {
 #endif
     if (sum != std::uint64_t(n) * (n - 1) / 2) return 4;
     std::printf("%.9f,%llu\n", std::chrono::duration<double>(t1 - t0).count(), (unsigned long long)sum);
-#if !defined(IMPL_FABLE) && !defined(IMPL_CODEX) && !defined(IMPL_STD) && !defined(IMPL_DEEPSEEK)
-    destructor(&v);
-#endif
     return 0;
 }

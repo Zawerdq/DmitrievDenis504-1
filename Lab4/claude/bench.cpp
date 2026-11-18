@@ -39,14 +39,17 @@ struct Sample { double sec; long faults; };
 
 // ---- одно заполнение ----
 static Sample fill_sub(unsigned n, Growth g, Realloc how) {
-    subvector v; init(&v); set_realloc(&v, how); v.growth = g;
-    long f0 = minflt();
-    auto t0 = Clock::now();
-    for (unsigned i = 0; i < n; ++i) push_back(&v, int(i));
-    auto t1 = Clock::now();
-    long f1 = minflt();
-    sink += v.top + unsigned(v.mas[0]) + unsigned(v.mas[n / 2]) + unsigned(v.mas[n - 1]);
-    destructor(&v);
+    long f0, f1;
+    Clock::time_point t0, t1;
+    {
+        subvector<int> v(g, how);
+        f0 = minflt();
+        t0 = Clock::now();
+        for (unsigned i = 0; i < n; ++i) v.push_back(int(i));
+        t1 = Clock::now();
+        f1 = minflt();
+        sink += v.get_size() + unsigned(v[0]) + unsigned(v[n / 2]) + unsigned(v[n - 1]);
+    }                                       // деструктор — вне таймера
     return {std::chrono::duration<double>(t1 - t0).count(), f1 - f0};
 }
 
@@ -62,8 +65,8 @@ static Sample fill_std(unsigned n, bool reserve) {
     return {std::chrono::duration<double>(t1 - t0).count(), f1 - f0};
 }
 
-static Growth add(unsigned c) { Growth g; g.multiply = false; g.step = c; return g; }
-static Growth mul(double k) { Growth g; g.multiply = true; g.factor = k; return g; }
+static Growth add(unsigned c) { return Growth::add(c); }
+static Growth mul(double k) { return Growth::mul(k); }
 
 static FILE* open_csv(const std::string& name, const char* header) {
     FILE* f = std::fopen((DIR + "/" + name).c_str(), "w");
@@ -162,18 +165,17 @@ static void part_realloc() {
         for (auto& s : ss)
             for (int h = 0; h < 3; ++h) {
                 if (n == 10000000u && !s.g.multiply && h != 2) continue;   // +c с копированием на 10 млн — минуты
-                subvector v; init(&v); set_realloc(&v, Realloc(h)); v.growth = s.g;
+                subvector<int> v(s.g, Realloc(h));
                 unsigned long long grows = 0, moves = 0, moved = 0;
                 for (unsigned i = 0; i < n; ++i) {
-                    if (v.top == v.capacity) {
-                        const int* before = v.mas;
-                        push_back(&v, int(i));
+                    if (v.get_size() == v.get_capacity()) {
+                        const int* before = v.get_data();
+                        v.push_back(int(i));
                         ++grows;
-                        if (before && v.mas != before) { ++moves; moved += i; }
-                    } else push_back(&v, int(i));
+                        if (before && v.get_data() != before) { ++moves; moved += i; }
+                    } else v.push_back(int(i));
                 }
                 std::fprintf(g, "%s,%s,%u,%llu,%llu,%llu\n", s.name, how_names[h], n, grows, moves, moved);
-                destructor(&v);
             }
     std::fclose(f);
     std::fclose(g);
@@ -229,15 +231,14 @@ static void part_latency() {
     std::vector<std::uint64_t> cyc(N);
     struct S { const char* name; Growth g; };
     for (S s : {S{"x2", mul(2.0)}, S{"x1.5", mul(1.5)}, S{"+100000", add(100000)}}) {
-        subvector v; init(&v); v.growth = s.g;
+        subvector<int> v(s.g);
         for (unsigned i = 0; i < N; ++i) {
             std::uint64_t a = __rdtsc();
-            push_back(&v, int(i));
+            v.push_back(int(i));
             std::uint64_t b = __rdtsc();
             cyc[i] = b - a;
         }
-        sink += v.mas[N - 1];
-        destructor(&v);
+        sink += v[N - 1];
         std::uint64_t total = 0, over = 0;
         for (unsigned i = 0; i < N; ++i) {
             total += cyc[i];

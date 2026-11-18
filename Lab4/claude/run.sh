@@ -6,9 +6,9 @@ cd "$(dirname "$0")"
 mkdir -p build data plots
 F="-std=c++17 -Wall -Wextra"
 
-g++ $F -O1 -g -fsanitize=address,undefined tests.cpp subvector.cpp -o build/tests && ./build/tests
+g++ $F -O1 -g -fsanitize=address,undefined,float-cast-overflow tests.cpp -o build/tests && ./build/tests
 
-g++ $F -O2 bench.cpp subvector.cpp -o build/bench
+g++ $F -O2 bench.cpp -o build/bench
 for p in capacity latency realloc step factor types strategies; do ./build/bench $p data; done
 
 # последовательность ёмкостей у двух стандартных библиотек
