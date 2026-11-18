@@ -1,6 +1,14 @@
 # Лабораторная 4. subvector: динамический массив и стратегии роста
 
-Отчёт с графиками и выводами: [REPORT.md](REPORT.md).
+## Как устроена папка
+
+| Что | Где |
+|---|---|
+| **Материал по лабе** | корень `Lab4/`: решение (`subvector.h`, `subvector.cpp`, `main.cpp`, `tests.cpp`), данные `data/`, графики `plots/`, отчёт [REPORT.md](REPORT.md) |
+| **Полный отчёт по лабе (PDF)** | [Lab4_subvector.pdf](Lab4_subvector.pdf): задание, теория, устройство `std::vector`, расширенные замеры, 10 графиков, наилучшая стратегия. Исходник — [report/Lab4_subvector.md](report/Lab4_subvector.md) |
+| **Исследование по ИИ** | [ai_research/](ai_research/): решения Codex, DeepSeek, Claude, общий стенд, разбор выводов, затраты токенов, [AI_comparison.pdf](ai_research/AI_comparison.pdf) |
+
+Решение в корне написано Fable 5.2. Отчёт [REPORT.md](REPORT.md) описывает его собственные замеры, PDF дополняет его расширенными замерами и теорией.
 
 ## Файлы
 

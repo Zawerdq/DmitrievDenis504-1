@@ -1,0 +1,17 @@
+case;size;capacity
+vector<int> a;0;0
+vector<int> b(10);10;10
+vector<int> c(10, 7);10;10
+vector<int> d{1, 2, 3};3;3
+b.push_back(1) при size = capacity = 10;11;20
+vector<int> e(b) — копия;11;11
+vector<int> m(std::move(e)) — перемещение;11;11
+e после перемещения;0;0
+a.reserve(100);0;100
+a.resize(5);5;100
+a.reserve(10) — меньше текущей: ничего;5;100
+b.pop_back();10;20
+b.clear();0;20
+b.shrink_to_fit();0;0
+vector<int>(5).resize(6);6;10
+vector<int>(5) + insert 20 элементов;25;25

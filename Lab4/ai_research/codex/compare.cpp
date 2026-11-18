@@ -9,7 +9,7 @@
 #if defined(USE_JOURNAL)
 #include "container.h"
 #elif defined(USE_FABLE)
-#include "../subvector.h"
+#include "../../subvector.h"
 #else
 #include "subvector.hpp"
 #endif
